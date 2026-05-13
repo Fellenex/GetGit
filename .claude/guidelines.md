@@ -129,3 +129,13 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Decision:** the CLI takes a GitHub username as a required positional argument (e.g. `python -m getgit <username>`).
 **Alternatives:** infer the username from the PAT's authenticated user; prompt interactively.
 **Why:** explicit is better than implicit, and v0.2.0 will need to target arbitrary usernames anyway — using the same interface from v0.1.0 avoids a breaking change.
+
+### 2026-05-12 — Self vs stranger handled by a single `is_self` branch in the repo fetcher
+**Decision:** the only structural difference between scraping yourself and scraping a stranger lives in `getgit/fetchers/repos.py`: `is_self=True` calls `/user/repos` (public + private), `is_self=False` calls `/users/{u}/repos` (public only). Everything downstream (commits, PRs, search) is identical because the GitHub API already filters results by the PAT's visibility.
+**Alternatives:** introduce a dedicated `ScopeResolver` class with explicit `can_see(...)` checks at every fetcher; gate the stranger path behind a `--public` flag.
+**Why:** the GitHub API enforces visibility server-side, so a client-side resolver would be redundant ceremony at this stage. The `is_self` boolean is the minimum signal needed and keeps fetchers dumb. A real `ScopeResolver` becomes worthwhile in phase 2 when the *viewer* identity comes from OAuth and may differ per request — at that point the boolean grows into an object.
+
+### 2026-05-12 — v0.2.0 is a hardening release, not a feature release
+**Decision:** v0.2.0 ships no new fetchers or CLI surface. Scope: add tests (commits, PR JIRA extraction, pagination, `is_self` branching against a mocked API), handle rate-limit responses gracefully (`X-RateLimit-Remaining` / `Retry-After`), and verify the stranger path end-to-end against a real public account.
+**Alternatives:** bundle Docker into v0.2.0; add a `--public` flag to force the stranger path even when targeting yourself.
+**Why:** the stranger path already works structurally (see prior decision). The risk in opening it up is correctness and politeness toward GitHub's API, not missing code. Keeping Docker in v0.3.0 preserves the roadmap's separation of concerns: v0.2 = trust the data; v0.3 = trust the runtime.
