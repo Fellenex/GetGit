@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from .json_model import JSONModel
+from ...infrastructure.data import JSONModel
 from .commit import Commit
 from .pull_request import PullRequest
 from .review import Review

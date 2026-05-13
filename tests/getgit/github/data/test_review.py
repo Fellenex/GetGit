@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from getgit.models import Review
+from getgit.github import Review
 
 
 def test_to_jsonable_round_trips_all_fields():

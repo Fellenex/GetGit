@@ -4,8 +4,8 @@ from datetime import datetime
 
 import httpx
 
-from ...models import Commit
 from ..clients import GithubClient
+from ..data import Commit
 
 
 class CommitProvider:

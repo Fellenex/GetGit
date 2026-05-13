@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from ..models import JSONModel
+from ..infrastructure.data import JSONModel
 
 
 class JsonWriter:

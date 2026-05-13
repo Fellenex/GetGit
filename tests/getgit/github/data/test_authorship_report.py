@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from getgit.models import AuthorshipReport, Commit, PullRequest, Review
+from getgit.github import AuthorshipReport, Commit, PullRequest, Review
 
 
 def test_serializes_nested_collections_recursively():

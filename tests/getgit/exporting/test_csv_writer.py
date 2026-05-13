@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from getgit.exporting import CsvWriter
-from getgit.models import Commit, PullRequest, Review
+from getgit.github import Commit, PullRequest, Review
 
 
 def _ts() -> datetime:

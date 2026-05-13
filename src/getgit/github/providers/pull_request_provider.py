@@ -4,9 +4,8 @@ import re
 from datetime import datetime
 from pathlib import PurePosixPath
 
-from ...models import PullRequest, Review
 from ..clients import GithubClient
-from ..data import PullRequestFetchResult
+from ..data import PullRequest, PullRequestFetchResult, Review
 
 
 class PullRequestProvider:

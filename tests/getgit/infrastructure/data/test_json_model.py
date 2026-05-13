@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from getgit.models import JSONModel
+from getgit.infrastructure.data import JSONModel
 
 
 @dataclass

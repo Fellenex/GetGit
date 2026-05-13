@@ -2,8 +2,7 @@
 
 from _support.github import ErroringGithubClient, FakeGithubClient
 
-from getgit.github import CommitProvider
-from getgit.models import Commit
+from getgit.github import Commit, CommitProvider
 
 
 def _commit(sha: str) -> dict:

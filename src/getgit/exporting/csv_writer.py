@@ -4,7 +4,7 @@ import csv
 from dataclasses import fields
 from pathlib import Path
 
-from ..models import JSONModel
+from ..infrastructure.data import JSONModel
 
 
 class CsvWriter:

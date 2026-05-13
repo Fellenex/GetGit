@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from getgit.models import Commit
+from getgit.github import Commit
 
 
 def test_to_jsonable_serializes_datetime_as_iso():

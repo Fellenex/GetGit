@@ -13,13 +13,13 @@ from datetime import datetime, timezone
 from ..authentication import GithubSettings
 from ..exporting import ReportExporter
 from ..github import (
+    AuthorshipReport,
     CommitProvider,
     GithubClient,
     GithubService,
     PullRequestProvider,
     RepoProvider,
 )
-from ..models import AuthorshipReport
 from .data import AppSettings
 
 

@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from getgit.models import PullRequest
+from getgit.github import PullRequest
 
 
 def test_to_jsonable_emits_dict_diff_stats_and_jira_codes():

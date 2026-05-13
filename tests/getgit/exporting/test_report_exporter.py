@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from getgit.exporting import ReportExporter
-from getgit.models import AuthorshipReport, Commit, PullRequest, Review
+from getgit.github import AuthorshipReport, Commit, PullRequest, Review
 
 
 def _sample_report() -> AuthorshipReport:

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from getgit.exporting import JsonWriter
-from getgit.models import Commit
+from getgit.github import Commit
 
 
 def _ts() -> datetime:

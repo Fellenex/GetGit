@@ -1,15 +1,25 @@
 """GitHub domain — clients, providers, services, and result data classes."""
 
 from .clients import GithubClient
-from .data import PullRequestFetchResult
+from .data import (
+    AuthorshipReport,
+    Commit,
+    PullRequest,
+    PullRequestFetchResult,
+    Review,
+)
 from .providers import CommitProvider, PullRequestProvider, RepoProvider
 from .services import GithubService
 
 __all__ = [
+    "AuthorshipReport",
+    "Commit",
+    "CommitProvider",
     "GithubClient",
     "GithubService",
-    "CommitProvider",
+    "PullRequest",
+    "PullRequestFetchResult",
     "PullRequestProvider",
     "RepoProvider",
-    "PullRequestFetchResult",
+    "Review",
 ]

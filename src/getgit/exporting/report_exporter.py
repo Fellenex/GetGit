@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from ..models import AuthorshipReport
+from ..github import AuthorshipReport
 from .csv_writer import CsvWriter
 from .json_writer import JsonWriter
 

@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass, field
 
-from ...models import PullRequest, Review
+from .pull_request import PullRequest
+from .review import Review
 
 
 @dataclass

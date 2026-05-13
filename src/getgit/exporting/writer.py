@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Protocol
 
-from ..models import JSONModel
+from ..infrastructure.data import JSONModel
 
 
 class Writer(Protocol):
