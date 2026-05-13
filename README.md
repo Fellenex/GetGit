@@ -98,7 +98,8 @@ Each `<username>.<collection>.json` file is a JSON array of these row shapes.
     "created_at": "2026-05-01T...",
     "closed_at":  "2026-05-03T...",  // null only if still open (we filter is:closed, so always set)
     "additions": {".py": 120, ".yml": 8, "Dockerfile": 3},  // extensionless files key on basename
-    "deletions": {".py": 14},                                // "*" appears instead when --no-extension-breakdown
+    "deletions": {".py": 14, ".unity": 3},                   // sparse: zero entries omitted, so the two dicts may differ in keys
+    // "*" appears (instead of per-extension keys) when --no-extension-breakdown
     "comments": 7,                                           // total across all authors
     "comments_by_author": 2,                                 // subset by the target user
     "jira_codes": {"WD": ["WD-1234", "WD-5678"]}             // keyed by project prefix; lists are sorted & deduped

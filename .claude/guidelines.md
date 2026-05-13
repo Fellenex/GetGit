@@ -232,6 +232,11 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** organize by technical layer (`controllers/`, `services/`, `repositories/`); keep multi-class files where classes are tightly related (e.g. `auth.py` with both `Auth` and `PersonalTokenAuth`); leave file names short (`prs.py`, `repos.py`) and rely on imports for disambiguation.
 **Why:** domain folders make "where does X go?" answerable from the domain name alone — phase 2 will add OAuth, which slots into `authentication/` next to `personal_token_auth.py` without touching anything else. One-class-per-file plus matching filenames removes the small-but-cumulative friction of "which file holds this class?" — the answer is mechanical. Re-export `__init__.py`s keep external imports stable as files move within a domain.
 
+### 2026-05-13 — `additions`/`deletions` are sparse — zero entries omitted
+**Decision:** when aggregating per-extension `additions`/`deletions`, an extension is included in a dict only if its accumulated value is non-zero. The two dicts may have different key sets — a `.unity` file with 0 additions and 3 deletions appears in `deletions` only. The same rule applies to the `--no-extension-breakdown` `"*"` total: a PR with zero changes produces `{}` instead of `{"*": 0}`.
+**Alternatives:** keep the dicts symmetric for "schema stability"; emit `null` instead of omitting; ship a separate `extensions_touched` field.
+**Why:** symmetric zero-padded dicts are noise — every consumer that wants "did this PR touch `.py`?" has to check `value > 0` anyway. Sparse dicts are the truthful representation of what changed. Schema stability isn't lost: the field type is still `dict[str, int]`; consumers iterate keys instead of probing fixed ones.
+
 ### 2026-05-13 — Per-run output subdirectory: `<out>/<username>/<generated_at>/`
 **Decision:** `write_report` puts every file under `<out_dir>/<username>/<generated_at>/`, where the timestamp uses `%Y-%m-%d_T%H-%M-%S`. Filenames inside drop the username prefix — `commits.json` instead of `<u>.commits.json`. Each run lands in its own folder, so two runs against the same user don't overwrite each other.
 **Alternatives:** keep flat output with timestamped filenames; use ISO-8601 with colons (breaks Windows); skip the username folder and rely on the timestamp alone.

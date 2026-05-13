@@ -1,6 +1,17 @@
-"""Tests for the PR fetcher's pure helpers."""
+"""Tests for the PR fetcher's pure helpers and sparse-breakdown logic."""
 
+from getgit.fetchers import PullRequestFetcher
 from getgit.fetchers.pull_request_fetcher import _extract_jira_codes, _file_extension
+
+
+class _FakeClient:
+    """Minimal stand-in for GithubClient — yields a pre-set list from paginate."""
+
+    def __init__(self, files: list[dict]):
+        self._files = files
+
+    def paginate(self, _url: str, _params: dict | None = None):
+        return iter(self._files)
 
 
 def test_file_extension_simple():
@@ -57,3 +68,29 @@ def test_extract_jira_codes_requires_uppercase_prefix():
 def test_extract_jira_codes_no_match_returns_empty_dict():
     """No matches anywhere should produce an empty dict (not None)."""
     assert _extract_jira_codes("nothing here", "still nothing") == {}
+
+
+def test_ext_breakdown_omits_zero_entries():
+    """A `.unity` file with deletions but no additions should appear only in `deletions`."""
+    files = [
+        {"filename": "Assets/foo.unity", "additions": 0, "deletions": 3},
+        {"filename": "src/foo.py", "additions": 10, "deletions": 0},
+        {"filename": "src/bar.py", "additions": 5, "deletions": 2},
+    ]
+    fetcher = PullRequestFetcher(_FakeClient(files))
+
+    additions, deletions = fetcher._ext_breakdown("o/r", 1)
+
+    assert additions == {".py": 15}
+    assert deletions == {".unity": 3, ".py": 2}
+
+
+def test_ext_breakdown_no_changes_yields_empty_dicts():
+    """A PR with only zero-line file entries returns two empty dicts (not `{ext: 0}`)."""
+    files = [{"filename": "noop.txt", "additions": 0, "deletions": 0}]
+    fetcher = PullRequestFetcher(_FakeClient(files))
+
+    additions, deletions = fetcher._ext_breakdown("o/r", 1)
+
+    assert additions == {}
+    assert deletions == {}

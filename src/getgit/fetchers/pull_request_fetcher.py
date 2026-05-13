@@ -90,8 +90,10 @@ class PullRequestFetcher:
         if fetch_extensions:
             additions, deletions = self._ext_breakdown(repo_full, number)
         else:
-            additions = {"*": pr.get("additions", 0)}
-            deletions = {"*": pr.get("deletions", 0)}
+            total_a = pr.get("additions", 0)
+            total_d = pr.get("deletions", 0)
+            additions = {"*": total_a} if total_a else {}
+            deletions = {"*": total_d} if total_d else {}
 
         issue_comments_by_user = self._count_user_comments(
             f"/repos/{repo_full}/issues/{number}/comments", username
@@ -122,13 +124,23 @@ class PullRequestFetcher:
     def _ext_breakdown(
         self, repo_full: str, number: int
     ) -> tuple[dict[str, int], dict[str, int]]:
-        """Aggregate `additions`/`deletions` from `/pulls/{n}/files` keyed by extension."""
+        """Aggregate `additions`/`deletions` from `/pulls/{n}/files` keyed by extension.
+
+        Zero-valued entries are omitted: a `.unity` file with 3 deletions
+        and 0 additions appears in `deletions` only, not in `additions`.
+        Keeps the two dicts asymmetric and lossless — consumers iterate
+        only over real edits.
+        """
         additions: dict[str, int] = {}
         deletions: dict[str, int] = {}
         for raw in self._client.paginate(f"/repos/{repo_full}/pulls/{number}/files"):
             ext = _file_extension(raw["filename"])
-            additions[ext] = additions.get(ext, 0) + raw.get("additions", 0)
-            deletions[ext] = deletions.get(ext, 0) + raw.get("deletions", 0)
+            a = raw.get("additions", 0)
+            d = raw.get("deletions", 0)
+            if a:
+                additions[ext] = additions.get(ext, 0) + a
+            if d:
+                deletions[ext] = deletions.get(ext, 0) + d
         return additions, deletions
 
     def _count_user_comments(self, comments_url: str, username: str) -> int:
