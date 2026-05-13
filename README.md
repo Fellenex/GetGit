@@ -10,7 +10,7 @@ A tool for scraping GitHub authorship data — commits, pull requests, and assoc
 
 **Phase 3 (planned)** — Cloud-deployed, web-accessible. Hosted at a public URL so anyone can sign in and use it without installing anything.
 
-See [`.claude/guidelines.md`](.claude/guidelines.md) for the full roadmap and architectural decision log.
+See [`.claude/guidelines.md`](.claude/guidelines.md) for the full roadmap and architecture; the historical architectural-decision log lives in [`.claude/architecturalDecisions.md`](.claude/architecturalDecisions.md).
 
 ## Data collected
 
@@ -26,7 +26,7 @@ For each PR:
 - Number, repo, title, merged/closed status, timestamps
 - Lines added / removed **per file extension** (`{".py": 20, ".yml": 5}`)
 - Total comment count *and* count of comments by the target user
-- Associated JIRA ticket codes — sorted, deduped flat list (`["WD-1234", "WD-5678", "YWFB-99"]`) extracted via regex `[A-Z]{2,10}-\d+` over title, body, and branch name
+- Associated JIRA ticket codes — sorted, deduped flat list (`["WD-1234", "WD-5678", "YWFB-99"]`) extracted via regex `[A-Z]{2,10}-\d+` from the **PR description (body) only**. Title, branch name, and comments are intentionally not scanned.
 
 **Reviews** — every code review the user submitted on either set of PRs:
 - Source PR, 1-based ordinal index on that PR, state (`APPROVED` / `CHANGES_REQUESTED` / `COMMENTED` / `DISMISSED`), submitted-at, body
@@ -72,7 +72,7 @@ The username + timestamp in the path captures the metadata that used to live at 
 
 ### JSON row shapes
 
-Each `<username>.<collection>.json` file is a JSON array of these row shapes.
+Each `<collection>.json` file inside the per-run subdirectory is a JSON array of these row shapes.
 
 **`commits.json`**
 ```jsonc
@@ -97,6 +97,7 @@ Each `<username>.<collection>.json` file is a JSON array of these row shapes.
     "merged": true,                  // false = closed-without-merge
     "created_at": "2026-05-01T...",
     "closed_at":  "2026-05-03T...",  // null only if still open (we filter is:closed, so always set)
+    "updated_at": "2026-05-03T...",  // GitHub's updated_at — drives the next run's `updated:>=` watermark
     "additions": {".py": 120, ".yml": 8, "Dockerfile": 3},  // extensionless files key on basename
     "deletions": {".py": 14, ".unity": 3},                   // sparse: zero entries omitted, so the two dicts may differ in keys
     // "*" appears (instead of per-extension keys) when --no-extension-breakdown
@@ -127,10 +128,10 @@ One CSV per top-level collection. Columns mirror the dataclass field order.
 
 | File | Columns |
 | --- | --- |
-| `<u>.commits.csv` | `sha, repo, authored_at, message, pull_request_number` |
-| `<u>.authored_pull_requests.csv` | `number, repo, title, merged, created_at, closed_at, additions, deletions, comments, comments_by_author, jira_codes` |
-| `<u>.participated_pull_requests.csv` | (same as authored) |
-| `<u>.reviews.csv` | `pr_repo, pr_number, index, state, submitted_at, body` |
+| `commits.csv` | `sha, repo, authored_at, message, pull_request_number` |
+| `authored_pull_requests.csv` | `number, repo, title, merged, created_at, closed_at, updated_at, additions, deletions, comments, comments_by_author, jira_codes` |
+| `participated_pull_requests.csv` | (same as authored) |
+| `reviews.csv` | `pr_repo, pr_number, index, state, submitted_at, body` |
 
 **Encoding rules for non-scalar cells:**
 - List values (e.g. `jira_codes`) → `;`-joined string: `WD-1234;WD-5678;YWFB-99`
@@ -214,4 +215,4 @@ If you have [Task](https://taskfile.dev) installed:
 
 ## Architecture and design decisions
 
-See [`.claude/guidelines.md`](.claude/guidelines.md) for the design contract, roadmap, and the chronological log of architectural decisions.
+[`.claude/guidelines.md`](.claude/guidelines.md) holds the design contract, roadmap, and conventions. The chronological log of architectural decisions (numbered `[ADR-001]` through current) lives in [`.claude/architecturalDecisions.md`](.claude/architecturalDecisions.md).

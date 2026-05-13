@@ -28,35 +28,46 @@ The Python core from phase 1 must remain reusable in phases 2 and 3. The auth-to
 
 ## Architecture
 
-### Auth layer (pluggable)
+The current source layout, by domain:
 
-A common `Auth` interface returns an authed HTTP client. Implementations:
+```
+src/getgit/
+├── application/           # UI-agnostic orchestration
+│   ├── data/              #   AppSettings, UserState
+│   ├── main.py            #   run(settings) — the entry point providers and exporters share
+│   └── user_state_store.py
+├── authentication/        # GithubSettings (auth_token, base_url, timeout)
+├── cli/                   # ArgumentParser, main()
+├── exporting/             # Writer protocol; CsvWriter, JsonWriter, ReportExporter
+├── github/                # Everything GitHub-specific
+│   ├── clients/           #   GithubClient, RateLimitExceededError
+│   ├── data/              #   Commit, PullRequest, Review, AuthorshipReport, PullRequestFetchResult
+│   ├── providers/         #   CommitProvider, PullRequestProvider, RepoProvider
+│   └── services/          #   GithubService (facade over the providers)
+└── infrastructure/        # Cross-cutting building blocks
+    └── data/              #   JSONModel
+```
 
-- `PersonalTokenAuth` — reads PAT from env var. Phase 1 default.
-- `OAuthAppAuth` — GitHub OAuth flow. Added in phase 2.
-- `UnauthenticatedAuth` — public-only fallback (heavy rate limit).
+### Authentication
 
-Fetchers must never read tokens directly — they receive the client from the auth layer.
+`GithubSettings(auth_token, base_url, timeout)` is the only auth concept — a passive config carrier. There is no `Auth` protocol or `PersonalTokenAuth` strategy class; both were removed once it became clear the only artifact every implementation produced was a string token. The token enters via `AppSettings.access_token` (CLI reads `GITHUB_TOKEN` from env; phase 2's HTTP entry point will populate it from OAuth).
 
-### Scope resolver
+### Self vs stranger scope
 
-Given `(viewer, target_user)`, decides what's fetchable:
-- `viewer == target` → public + private
-- `viewer != target` → public only
+The only client-side difference between scraping yourself and scraping a stranger lives in `RepoProvider.list_repos(username, is_self=...)`: `is_self=True` calls `/user/repos`, `False` calls `/users/{u}/repos`. Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
 
-Fetchers stay dumb: they ask the resolver "can I see X?" rather than encoding visibility logic themselves.
+### Providers (the `github/providers/` domain)
 
-### Fetchers
+Per-resource scrapers, each taking a `GithubClient` in its constructor:
+- `RepoProvider` — `list_repos(username, is_self)`
+- `PullRequestProvider` — `fetch(username, limit, fetch_extensions, since)` returns a `PullRequestFetchResult`
+- `CommitProvider` — `fetch(repos, username, limit, pr_index, since_per_repo)` returns `list[Commit]`
 
-One module per data domain. Each returns dataclass instances (see `models/`).
-- `repos.py`
-- `commits.py`
-- `prs.py`
-- (extend as needed: `issues.py`, `contributions.py`)
+`GithubService` (in `github/services/`) bundles the three providers + `AppSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`. Call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`.
 
 ### Storage / cache
 
-Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
+Today: JSON + CSV files written by `ReportExporter` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateStore` (in `application/`). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
 
 ## Tech choices
 
@@ -87,7 +98,7 @@ Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB o
 - **Reusable test support classes** (fakes, recording test doubles, fixtures) live under `tests/_support/<domain>/` — e.g. `tests/_support/github/fake_github_client.py`. One class per file, same naming convention. Test modules import via `from _support.github import FakeGithubClient`. `tests/` is on `pytest`'s `pythonpath` so `_support` is a top-level package; this is the *only* `__init__.py`-having tree under `tests/`.
 - **Don't grow a bespoke fake class for every scenario.** A single, generic, reusable helper (`FakeGithubClient` for per-URL responses) is fine. One-off behaviors — raising a specific error, recording a specific call, returning a specific response — should use `unittest.mock.Mock(spec=...)` or `Mock(side_effect=...)` directly in the test.
 - **Prefer real objects over fakes when the real one is cheap to build.** `httpx.Response`, `httpx.Request`, dataclasses — construct the real thing. Fake the *transport* (the `_http` field on `GithubClient`), not the value types it returns.
-- **Source is organized by domain**, not by technical layer. Each domain is a folder under `src/getgit/` with an `__init__.py` that re-exports the public types. Current domains: `authentication/`, `cli/`, `fetchers/`, `github_api/`, `models/`. Single-file utilities (e.g. `storage.py`) stay top-level until they grow a class to organize.
+- **Source is organized by domain**, not by technical layer. Each domain is a folder under `src/getgit/` with an `__init__.py` that re-exports the public types. See the layout under "Architecture" above for the current set of domains.
 - Prefer editing existing files over creating new ones.
 
 ## Architecture diagram

@@ -135,9 +135,7 @@ class PullRequestProvider:
             deletions=deletions,
             comments=pr.get("comments", 0) + pr.get("review_comments", 0),
             comments_by_author=issue_comments_by_user + review_comments_by_user,
-            jira_codes=self._extract_jira_codes(
-                pr.get("title"), pr.get("body"), (pr.get("head") or {}).get("ref")
-            ),
+            jira_codes=self._extract_jira_codes(pr.get("body")),
         )
         return pr_obj, reviews
 
