@@ -1,1 +1,297 @@
-<mxfile host="drawio-plugin" modified="2026-05-13T05:24:10.723Z" agent="5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.102 Safari/537.36" version="20.5.3" etag="J7Z79DDtbExNiDCpBXiC" type="embed"><diagram name="Architecture" id="getgit-arch"><mxGraphModel dx="1378" dy="735" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1600" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="hdr-client" value="Client" style="text;align=center;fontSize=20;fontStyle=1;" parent="1" vertex="1"><mxGeometry x="60" width="200" height="40" as="geometry"/></mxCell><mxCell id="hdr-endpoint" value="Endpoint" style="text;align=center;fontSize=20;fontStyle=1;" parent="1" vertex="1"><mxGeometry x="460" width="200" height="40" as="geometry"/></mxCell><mxCell id="hdr-service" value="Service" style="text;align=center;fontSize=20;fontStyle=1;" parent="1" vertex="1"><mxGeometry x="860" width="200" height="40" as="geometry"/></mxCell><mxCell id="hdr-repo" value="Repository" style="text;align=center;fontSize=20;fontStyle=1;" parent="1" vertex="1"><mxGeometry x="1260" width="200" height="40" as="geometry"/></mxCell><mxCell id="hdr-source" value="Source / Models" style="text;align=center;fontSize=20;fontStyle=1;" parent="1" vertex="1"><mxGeometry x="1660" width="200" height="40" as="geometry"/></mxCell><mxCell id="main_module" value="__main__.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1"><mxGeometry x="60" y="60" width="200" height="60" as="geometry"/></mxCell><mxCell id="cli_main" value="cli/main.py&#10;main()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1"><mxGeometry x="60" y="220" width="200" height="60" as="geometry"/></mxCell><mxCell id="argument_parser" value="ArgumentParser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1"><mxGeometry x="60" y="380" width="200" height="60" as="geometry"/></mxCell><mxCell id="application_run" value="application/main.py&#10;run()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1"><mxGeometry x="480" y="140" width="200" height="60" as="geometry"/></mxCell><mxCell id="app_settings" value="AppSettings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1"><mxGeometry x="460" y="380" width="200" height="60" as="geometry"/></mxCell><mxCell id="github_service" value="GithubService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1"><mxGeometry x="860" y="240" width="200" height="60" as="geometry"/></mxCell><mxCell id="report_exporter" value="ReportExporter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1"><mxGeometry x="800" y="650" width="200" height="60" as="geometry"/></mxCell><mxCell id="repo_provider" value="RepoProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1"><mxGeometry x="1260" y="60" width="200" height="60" as="geometry"/></mxCell><mxCell id="pr_provider" value="PullRequestProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1"><mxGeometry x="1260" y="220" width="200" height="60" as="geometry"/></mxCell><mxCell id="commit_provider" value="CommitProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1"><mxGeometry x="1260" y="380" width="200" height="60" as="geometry"/></mxCell><mxCell id="csv_writer" value="CsvWriter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1"><mxGeometry x="1250" y="540" width="200" height="60" as="geometry"/></mxCell><mxCell id="json_writer" value="JsonWriter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1"><mxGeometry x="1250" y="730" width="200" height="60" as="geometry"/></mxCell><mxCell id="github_client" value="GithubClient" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1"><mxGeometry x="1660" y="60" width="200" height="60" as="geometry"/></mxCell><mxCell id="github_settings" value="GithubSettings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1"><mxGeometry x="1660" y="220" width="200" height="60" as="geometry"/></mxCell><mxCell id="writer" value="Writer (Protocol)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;dashed=1;" parent="1" vertex="1"><mxGeometry x="1660" y="380" width="200" height="60" as="geometry"/></mxCell><mxCell id="pr_fetch_result" value="PullRequestFetchResult" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1"><mxGeometry x="1660" y="540" width="200" height="60" as="geometry"/></mxCell><mxCell id="authorship_report" value="AuthorshipReport" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1"><mxGeometry x="1660" y="700" width="200" height="60" as="geometry"/></mxCell><mxCell id="commit" value="Commit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1"><mxGeometry x="1660" y="860" width="200" height="60" as="geometry"/></mxCell><mxCell id="pull_request" value="PullRequest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1"><mxGeometry x="1660" y="1020" width="200" height="60" as="geometry"/></mxCell><mxCell id="review" value="Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1"><mxGeometry x="1660" y="1180" width="200" height="60" as="geometry"/></mxCell><mxCell id="json_model" value="JSONModel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;dashed=1;" parent="1" vertex="1"><mxGeometry x="1660" y="1340" width="200" height="60" as="geometry"/></mxCell><mxCell id="legend_title" value="Legend" style="text;align=left;fontSize=14;fontStyle=1;" parent="1" vertex="1"><mxGeometry x="60" y="1340" width="100" height="22" as="geometry"/></mxCell><mxCell id="legend_solid" value="solid arrow = uses / depends on" style="text;align=left;fontSize=12;" parent="1" vertex="1"><mxGeometry x="60" y="1365" width="320" height="20" as="geometry"/></mxCell><mxCell id="legend_dashed" value="dashed arrow = inherits / implements" style="text;align=left;fontSize=12;" parent="1" vertex="1"><mxGeometry x="60" y="1390" width="320" height="20" as="geometry"/></mxCell><mxCell id="legend_dashed_box" value="dashed box = Protocol / abstract base" style="text;align=left;fontSize=12;" parent="1" vertex="1"><mxGeometry x="60" y="1415" width="320" height="20" as="geometry"/></mxCell><mxCell id="legend_columns" value="Columns: Client → Endpoint → Service → Repository → Source / Models" style="text;align=left;fontSize=12;fontStyle=2;" parent="1" vertex="1"><mxGeometry x="60" y="1450" width="500" height="20" as="geometry"/></mxCell><mxCell id="e1" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="main_module" target="cli_main" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e2" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="cli_main" target="argument_parser" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e3" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="cli_main" target="application_run" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e4" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="argument_parser" target="app_settings" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e5" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="application_run" target="app_settings" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e6" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="application_run" target="github_service" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e7" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="application_run" target="report_exporter" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e8" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="application_run" target="repo_provider" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e9" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" parent="1" source="application_run" target="pr_provider" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e10" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.9;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" parent="1" source="application_run" target="commit_provider" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e11" style="endArrow=classic;html=1;curved=1;exitX=0.95;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" parent="1" source="application_run" target="github_client" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e12" style="endArrow=classic;html=1;curved=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" parent="1" source="application_run" target="github_settings" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e13" style="endArrow=classic;html=1;curved=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="application_run" target="authorship_report" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e14" style="endArrow=classic;html=1;curved=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="github_service" target="app_settings" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e15" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" parent="1" source="github_service" target="repo_provider" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e16" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" parent="1" source="github_service" target="pr_provider" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e17" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" parent="1" source="github_service" target="commit_provider" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e18" style="endArrow=classic;html=1;curved=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" parent="1" source="github_service" target="pr_fetch_result" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e19" style="endArrow=classic;html=1;curved=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" parent="1" source="github_service" target="commit" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e20" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="report_exporter" target="csv_writer" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e21" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" parent="1" source="report_exporter" target="json_writer" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e22" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" parent="1" source="report_exporter" target="authorship_report" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e23" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" parent="1" source="repo_provider" target="github_client" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e24" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.85;entryDx=0;entryDy=0;" parent="1" source="pr_provider" target="github_client" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e28" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="commit_provider" target="github_client" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e25" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" parent="1" source="pr_provider" target="pull_request" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e26" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" parent="1" source="pr_provider" target="review" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e27" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.9;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" parent="1" source="pr_provider" target="pr_fetch_result" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e29" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="commit_provider" target="commit" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e30" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" parent="1" source="csv_writer" target="writer" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e32" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0.4;entryY=1;entryDx=0;entryDy=0;" parent="1" source="json_writer" target="writer" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e31" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="csv_writer" target="json_model" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e33" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" parent="1" source="json_writer" target="json_model" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e34" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" parent="1" source="writer" target="json_model" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e35" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="github_client" target="github_settings" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e36" style="endArrow=classic;html=1;curved=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" parent="1" source="pr_fetch_result" target="pull_request" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e37" style="endArrow=classic;html=1;curved=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.7;entryY=0;entryDx=0;entryDy=0;" parent="1" source="pr_fetch_result" target="review" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e38" style="endArrow=classic;html=1;curved=1;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" parent="1" source="authorship_report" target="commit" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e39" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="authorship_report" target="pull_request" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e40" style="endArrow=classic;html=1;curved=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="authorship_report" target="review" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e41" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="authorship_report" target="json_model" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e42" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.6;entryY=0;entryDx=0;entryDy=0;" parent="1" source="commit" target="json_model" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e43" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.7;entryY=0;entryDx=0;entryDy=0;" parent="1" source="pull_request" target="json_model" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell><mxCell id="e44" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;" parent="1" source="review" target="json_model" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>
+<mxfile host="app.diagrams.net" modified="2026-05-13" agent="GetGit/0.2.0" version="22.0.0" type="device">
+  <diagram name="Architecture" id="getgit-arch">
+    <mxGraphModel dx="2400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2300" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Column headers -->
+        <mxCell id="hdr-client" value="Client" style="text;align=center;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="0" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-endpoint" value="Endpoint / Application" style="text;align=center;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="0" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-service" value="Service" style="text;align=center;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="0" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-repo" value="Repository / Writer" style="text;align=center;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="0" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-source" value="Source / Models" style="text;align=center;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="0" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Client column (blue) -->
+        <mxCell id="main_module" value="__main__.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="60" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_main" value="cli/main.py&#10;main()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="argument_parser" value="ArgumentParser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Application column -->
+        <mxCell id="application_run" value="application/main.py&#10;run()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="480" y="60" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="app_settings" value="AppSettings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="480" y="200" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="user_state" value="UserState" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="480" y="340" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="user_state_repo" value="UserStateRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="480" y="480" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Service column (red) -->
+        <mxCell id="github_service" value="GithubService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="900" y="60" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="report_service" value="ReportService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="900" y="200" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Repository / Writer column (purple) -->
+        <mxCell id="repo_provider" value="RepoProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="60" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_provider" value="PullRequestProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="200" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="commit_provider" value="CommitProvider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="340" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="csv_writer" value="CsvWriter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="480" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="json_handler" value="JSONFileHandler" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="620" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Source / Models column (orange = transport / abstract; yellow = data) -->
+        <mxCell id="github_client" value="GithubClient" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="60" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="github_settings" value="GithubSettings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="200" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rate_limit_err" value="RateLimitExceededError" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="340" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="writer" value="Writer (Protocol)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="480" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="iso_date_parser" value="IsoDateParser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="620" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_fetch_result" value="PullRequestFetchResult" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="760" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="authorship_report" value="AuthorshipReport" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="900" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="commit" value="Commit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="1040" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pull_request" value="PullRequest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="1180" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="review" value="Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="1320" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="json_model" value="JSONModel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="1460" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend_title" value="Legend" style="text;align=left;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1460" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_solid" value="solid arrow = uses / depends on" style="text;align=left;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1485" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_dashed" value="dashed arrow = inherits / implements / raises" style="text;align=left;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1510" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_dashed_box" value="dashed box = Protocol / abstract base" style="text;align=left;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1535" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_columns" value="Columns: Client → Endpoint/App → Service → Repository/Writer → Source/Models" style="text;align=left;fontSize=12;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1565" width="600" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================== -->
+        <!-- Edges. Curved style with distinct exit/entry points.           -->
+        <!-- ============================================================== -->
+
+        <mxCell id="e1" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="main_module" target="cli_main">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cli_main" target="argument_parser">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cli_main" target="application_run">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="argument_parser" target="app_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e5" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="app_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="github_service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="report_service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.1;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="github_client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="github_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="endArrow=classic;html=1;curved=1;exitX=0.95;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="repo_provider">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="endArrow=classic;html=1;curved=1;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="pr_provider">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="endArrow=classic;html=1;curved=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="commit_provider">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="endArrow=classic;html=1;curved=1;exitX=0.6;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="authorship_report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14a" style="endArrow=classic;html=1;curved=1;exitX=0.4;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="user_state_repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14b" style="endArrow=classic;html=1;curved=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="user_state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14c" style="endArrow=classic;html=1;curved=1;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="application_run" target="json_handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_usr1" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.85;entryDx=0;entryDy=0;" edge="1" parent="1" source="user_state_repo" target="json_handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_usr2" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="user_state_repo" target="user_state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_usr3" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user_state_repo" target="iso_date_parser">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e15" style="endArrow=classic;html=1;curved=1;exitX=0;exitY=0.8;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="github_service" target="app_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="github_service" target="repo_provider">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" edge="1" parent="1" source="github_service" target="pr_provider">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.9;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" edge="1" parent="1" source="github_service" target="commit_provider">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e19" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="report_service" target="csv_writer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="1" source="report_service" target="json_handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="report_service" target="authorship_report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e22" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.65;entryDx=0;entryDy=0;" edge="1" parent="1" source="repo_provider" target="github_client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.85;entryDx=0;entryDy=0;" edge="1" parent="1" source="pr_provider" target="github_client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="commit_provider" target="github_client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e25" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="1" source="pr_provider" target="pull_request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="1" source="pr_provider" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e27" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" edge="1" parent="1" source="pr_provider" target="pr_fetch_result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e28" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="pr_provider" target="iso_date_parser">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e29" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="commit_provider" target="commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e30" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="csv_writer" target="writer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e31" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="csv_writer" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e33" style="endArrow=classic;html=1;curved=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="json_handler" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e34" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="writer" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e35" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="github_client" target="github_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_gh_err" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="github_client" target="rate_limit_err">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e36" style="endArrow=classic;html=1;curved=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="pr_fetch_result" target="pull_request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e37" style="endArrow=classic;html=1;curved=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.7;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="pr_fetch_result" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e38" style="endArrow=classic;html=1;curved=1;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="authorship_report" target="commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e39" style="endArrow=classic;html=1;curved=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="authorship_report" target="pull_request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e40" style="endArrow=classic;html=1;curved=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="authorship_report" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e41" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=0.4;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="authorship_report" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e42" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="commit" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e43" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=0.6;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="pull_request" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e44" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=0.7;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="review" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_us_jm" style="endArrow=block;endFill=0;dashed=1;html=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.85;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user_state" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
