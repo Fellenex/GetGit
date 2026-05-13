@@ -67,8 +67,9 @@ def main(argv: list[str] | None = None) -> int:
         commits=commits,
         pull_requests=prs,
     )
-    path = write_report(report, Path(args.out))
-    print(f"Wrote {path}")
+    paths = write_report(report, Path(args.out))
+    for label, p in paths.items():
+        print(f"Wrote {label}: {p}")
     return 0
 
 

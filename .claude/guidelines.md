@@ -176,6 +176,11 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** keep both for "self-documenting JSON"; replace with an enum.
 **Why:** the search query is hardcoded to `is:closed`, so every PR returned is in one of two terminal states fully determined by `merged_at`. Two fields encoding the same bit invites them to drift. Consumers needing a string label can derive `"merged" if merged else "closed"` trivially.
 
+### 2026-05-12 — CSV export alongside JSON; one file per row-shaped model
+**Decision:** `write_report` emits the canonical JSON plus one CSV per row-shaped model (`<user>.commits.csv`, `<user>.pull_requests.csv`). Columns come from `dataclasses.fields()` order. List-valued fields (currently only `jira_codes`) are joined with `;`. CSV writing lives in `storage.py` — models stay pure data.
+**Alternatives:** add a `to_csv_row()` method on `JSONModel`; emit one combined CSV with a discriminator column; ship JSON only and let downstream tools convert.
+**Why:** keeping the conversion in storage avoids polluting the model layer with a serialization format that's strictly downstream of `to_jsonable()`. One file per model maps cleanly onto how spreadsheets and BI tools consume tabular data — combining them would force consumers to filter. The `;` join is lossless for JIRA codes (which never contain semicolons) and avoids CSV-quoting edge cases. If a future model becomes deeply nested, that's the trigger to introduce a per-model `to_csv_row()` with a custom flattening rule, but flat dataclasses don't need it yet.
+
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
 **Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.
