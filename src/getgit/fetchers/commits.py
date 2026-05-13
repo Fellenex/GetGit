@@ -1,3 +1,5 @@
+"""Commit-history fetcher."""
+
 from datetime import datetime
 
 import httpx
@@ -7,6 +9,12 @@ from ..models import Commit
 
 
 def fetch_commits(client: httpx.Client, repos: list[dict], username: str) -> list[Commit]:
+    """Walk every repo and collect commits authored by `username`.
+
+    Uses `/repos/{full_name}/commits?author=...`, which avoids the
+    /search/commits rate cap. Empty repos return 409 and are skipped;
+    repos that 404 (deleted or now-private) are also skipped.
+    """
     commits: list[Commit] = []
     for repo in repos:
         full_name = repo["full_name"]
@@ -24,7 +32,6 @@ def fetch_commits(client: httpx.Client, repos: list[dict], username: str) -> lis
                     )
                 )
         except httpx.HTTPStatusError as e:
-            # Empty repos return 409; skip silently.
             if e.response.status_code in (404, 409):
                 continue
             raise

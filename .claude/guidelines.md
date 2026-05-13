@@ -82,7 +82,8 @@ ghscrape <username> --include commits,prs --since 2024-01-01 --out data/
 
 - Don't add features, abstractions, or error handling beyond what the current task requires.
 - Trust internal code; validate only at system boundaries (PAT input, GitHub API responses, user-supplied usernames).
-- Default to no comments. Add one only when the *why* is non-obvious.
+- Default to no inline comments. Add one only when the *why* is non-obvious.
+- **Every function and class gets a docstring.** Even one-liners. State *what* it does and, when it isn't obvious, *why*. Document non-trivial parameters and return shapes. Module-level docstrings are encouraged when a file's role isn't clear from its name.
 - Prefer editing existing files over creating new ones.
 
 ## Recording architectural decisions

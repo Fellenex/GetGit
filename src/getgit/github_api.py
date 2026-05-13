@@ -1,9 +1,18 @@
+"""Low-level helpers for the GitHub REST API."""
+
 from typing import Iterator
 
 import httpx
 
 
 def paginate(client: httpx.Client, url: str, params: dict | None = None) -> Iterator[dict]:
+    """Yield every item across all pages of a GitHub REST endpoint.
+
+    Follows the `Link: ...; rel="next"` header — works for both list
+    endpoints (which return arrays) and search endpoints (which wrap
+    results under `"items"`). Query params are sent on the first request
+    only; the `next` URL already contains them.
+    """
     params = dict(params or {})
     params.setdefault("per_page", 100)
     next_url: str | None = url

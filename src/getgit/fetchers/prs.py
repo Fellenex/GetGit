@@ -1,3 +1,5 @@
+"""Pull-request fetcher with JIRA-code extraction."""
+
 import re
 from datetime import datetime
 
@@ -7,9 +9,11 @@ from ..github_api import paginate
 from ..models import PullRequest
 
 JIRA_RE = re.compile(r"\b[A-Z]{2,10}-\d+\b")
+"""Matches JIRA-style ticket codes (e.g. WD-6000, YWFB-300, PTR-8000)."""
 
 
 def _extract_jira_codes(*texts: str | None) -> list[str]:
+    """Pull JIRA codes from any number of text blobs, preserving first-seen order and deduping."""
     seen: list[str] = []
     for text in texts:
         if not text:
@@ -21,16 +25,24 @@ def _extract_jira_codes(*texts: str | None) -> list[str]:
 
 
 def _parse_dt(s: str | None) -> datetime | None:
+    """Parse a GitHub ISO-8601 timestamp, returning None if the input is missing."""
     if not s:
         return None
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
 def fetch_pull_requests(client: httpx.Client, username: str) -> list[PullRequest]:
+    """Find every closed PR authored by `username` and enrich each with detail fields.
+
+    Search returns lightweight issue records; a follow-up
+    `/repos/{owner}/{repo}/pulls/{n}` fetch is required for `additions`,
+    `deletions`, `review_comments`, and `merged_at`. JIRA codes are
+    extracted from the PR title, body, and head branch name.
+    """
     query = f"type:pr author:{username} is:closed"
     results: list[PullRequest] = []
     for issue in paginate(client, "/search/issues", {"q": query}):
-        repo_url = issue["repository_url"]  # https://api.github.com/repos/{owner}/{repo}
+        repo_url = issue["repository_url"]
         repo_full = "/".join(repo_url.rsplit("/", 2)[-2:])
         number = issue["number"]
 

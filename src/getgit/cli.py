@@ -1,3 +1,5 @@
+"""Command-line entry point for GetGit."""
+
 import argparse
 import sys
 from datetime import datetime, timezone
@@ -14,6 +16,12 @@ from .storage import write_report
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse args, run all fetchers, and write the JSON report.
+
+    `argv` is exposed for testing; production callers (the console
+    script, `python -m getgit`) leave it `None` so argparse reads
+    `sys.argv`. Returns a process exit code.
+    """
     load_dotenv()
     parser = argparse.ArgumentParser(prog="getgit", description="Scrape GitHub authorship data.")
     parser.add_argument("username", help="GitHub username to scrape.")
