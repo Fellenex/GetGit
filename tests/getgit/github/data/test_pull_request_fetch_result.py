@@ -1,6 +1,6 @@
 """Tests for PullRequestFetchResult."""
 
-from getgit.fetchers import PullRequestFetchResult
+from getgit.github import PullRequestFetchResult
 
 
 def test_defaults_are_empty_collections():

@@ -4,7 +4,7 @@ from typing import Iterator
 
 import httpx
 
-from ..authentication import GithubSettings
+from ...authentication import GithubSettings
 
 
 class GithubClient:

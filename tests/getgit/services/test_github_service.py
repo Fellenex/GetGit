@@ -1,9 +1,9 @@
-"""Tests for GithubService — verifies it threads AppSettings into each fetcher."""
+"""Tests for GithubService — verifies it threads AppSettings into each provider."""
 
 from pathlib import Path
 
 from getgit.application import AppSettings
-from getgit.fetchers import PullRequestFetchResult
+from getgit.github import PullRequestFetchResult
 from getgit.services import GithubService
 
 
@@ -21,7 +21,7 @@ def _settings(**overrides) -> AppSettings:
     return AppSettings(**base)
 
 
-class _RecordingRepoFetcher:
+class _RecordingRepoProvider:
     """Records the args of the last `list_repos` call."""
 
     def __init__(self):
@@ -32,7 +32,7 @@ class _RecordingRepoFetcher:
         return [{"full_name": "o/r"}]
 
 
-class _RecordingPullRequestFetcher:
+class _RecordingPullRequestProvider:
     def __init__(self):
         self.last_call: dict | None = None
 
@@ -45,7 +45,7 @@ class _RecordingPullRequestFetcher:
         return PullRequestFetchResult()
 
 
-class _RecordingCommitFetcher:
+class _RecordingCommitProvider:
     def __init__(self):
         self.last_call: dict | None = None
 
@@ -61,14 +61,14 @@ class _RecordingCommitFetcher:
 
 def _make_service(**setting_overrides):
     repo, prs, commits = (
-        _RecordingRepoFetcher(),
-        _RecordingPullRequestFetcher(),
-        _RecordingCommitFetcher(),
+        _RecordingRepoProvider(),
+        _RecordingPullRequestProvider(),
+        _RecordingCommitProvider(),
     )
     service = GithubService(
-        repo_fetcher=repo,
-        pull_request_fetcher=prs,
-        commit_fetcher=commits,
+        repo_provider=repo,
+        pull_request_provider=prs,
+        commit_provider=commits,
         settings=_settings(**setting_overrides),
     )
     return service, repo, prs, commits

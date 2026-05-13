@@ -1,7 +1,7 @@
 """Tests for GithubClient — paginate logic and viewer_login."""
 
 from getgit.authentication import GithubSettings
-from getgit.github_api import GithubClient
+from getgit.github import GithubClient
 
 
 class _FakeResponse:

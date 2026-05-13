@@ -1,14 +1,14 @@
-"""Commit-history fetcher."""
+"""Commit-history provider."""
 
 from datetime import datetime
 
 import httpx
 
-from ..github_api import GithubClient
-from ..models import Commit
+from ...models import Commit
+from ..clients import GithubClient
 
 
-class CommitFetcher:
+class CommitProvider:
     """Walks repos and collects commits authored by a target user."""
 
     def __init__(self, client: GithubClient):
@@ -30,7 +30,7 @@ class CommitFetcher:
         skipped.
 
         `limit` caps the number of commits returned. `pr_index` (built
-        by `PullRequestFetcher.fetch`) maps `(repo, sha)` → PR number;
+        by `PullRequestProvider.fetch`) maps `(repo, sha)` → PR number;
         commits not in the index keep `pull_request_number=None`.
         """
         pr_index = pr_index or {}

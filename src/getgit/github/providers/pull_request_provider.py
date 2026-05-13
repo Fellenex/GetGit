@@ -1,15 +1,15 @@
-"""Pull-request fetcher: PRs (authored + participated), reviews, commit→PR index."""
+"""Pull-request provider: PRs (authored + participated), reviews, commit→PR index."""
 
 import re
 from datetime import datetime
 from pathlib import PurePosixPath
 
-from ..github_api import GithubClient
-from ..models import PullRequest, Review
-from .data import PullRequestFetchResult
+from ...models import PullRequest, Review
+from ..clients import GithubClient
+from ..data import PullRequestFetchResult
 
 
-class PullRequestFetcher:
+class PullRequestProvider:
     """Collects PRs (authored + participated), reviews, and a commit→PR index."""
 
     _JIRA_RE = re.compile(r"\b[A-Z]{2,10}-\d+\b")

@@ -12,8 +12,12 @@ from datetime import datetime, timezone
 
 from ..authentication import GithubSettings
 from ..exporting import ReportExporter
-from ..fetchers import CommitFetcher, PullRequestFetcher, RepoFetcher
-from ..github_api import GithubClient
+from ..github import (
+    CommitProvider,
+    GithubClient,
+    PullRequestProvider,
+    RepoProvider,
+)
 from ..models import AuthorshipReport
 from ..services import GithubService
 from .data import AppSettings
@@ -43,9 +47,9 @@ def run(settings: AppSettings) -> int:
         )
 
         github = GithubService(
-            repo_fetcher=RepoFetcher(client),
-            pull_request_fetcher=PullRequestFetcher(client),
-            commit_fetcher=CommitFetcher(client),
+            repo_provider=RepoProvider(client),
+            pull_request_provider=PullRequestProvider(client),
+            commit_provider=CommitProvider(client),
             settings=settings,
         )
 

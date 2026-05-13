@@ -1,9 +1,9 @@
 """Repository discovery — the only place self vs stranger diverges."""
 
-from ..github_api import GithubClient
+from ..clients import GithubClient
 
 
-class RepoFetcher:
+class RepoProvider:
     """Lists repositories owned by a target user.
 
     The `is_self` branch is the entire client-side scope check: the

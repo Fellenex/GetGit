@@ -1,8 +1,8 @@
-"""Tests for CommitFetcher."""
+"""Tests for CommitProvider."""
 
 import httpx
 
-from getgit.fetchers import CommitFetcher
+from getgit.github import CommitProvider
 from getgit.models import Commit
 
 
@@ -40,7 +40,7 @@ def test_fetch_walks_each_repo_and_returns_commits():
     })
     repos = [{"full_name": "o/r1"}, {"full_name": "o/r2"}]
 
-    out = CommitFetcher(client).fetch(repos, "alice")
+    out = CommitProvider(client).fetch(repos, "alice")
 
     assert [c.sha for c in out] == ["a", "b", "c"]
     assert all(isinstance(c, Commit) for c in out)
@@ -53,7 +53,7 @@ def test_fetch_attaches_pull_request_number_from_index():
     client = _FakeClient({"/repos/o/r/commits": [_commit("a"), _commit("b")]})
     pr_index = {("o/r", "a"): 42}
 
-    out = CommitFetcher(client).fetch(
+    out = CommitProvider(client).fetch(
         [{"full_name": "o/r"}], "alice", pr_index=pr_index
     )
 
@@ -67,7 +67,7 @@ def test_fetch_respects_limit():
         "/repos/o/r/commits": [_commit(s) for s in "abcde"],
     })
 
-    out = CommitFetcher(client).fetch([{"full_name": "o/r"}], "alice", limit=2)
+    out = CommitProvider(client).fetch([{"full_name": "o/r"}], "alice", limit=2)
 
     assert [c.sha for c in out] == ["a", "b"]
 
@@ -85,6 +85,6 @@ class _ErroringClient:
 
 def test_fetch_skips_repos_that_return_409_or_404():
     """Empty/inaccessible repos are silently skipped."""
-    fetcher = CommitFetcher(_ErroringClient(409))
+    fetcher = CommitProvider(_ErroringClient(409))
 
     assert fetcher.fetch([{"full_name": "o/empty"}], "alice") == []

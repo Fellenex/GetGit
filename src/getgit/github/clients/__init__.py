@@ -1,4 +1,4 @@
-"""GitHub API domain — the low-level authenticated HTTP client."""
+"""GitHub HTTP client(s) — low-level transport."""
 
 from .github_client import GithubClient
 
