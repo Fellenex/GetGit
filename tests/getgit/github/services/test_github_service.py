@@ -9,7 +9,7 @@ from _support.github import (
 )
 
 from getgit.application import AppSettings
-from getgit.services import GithubService
+from getgit.github import GithubService
 
 
 def _settings(**overrides) -> AppSettings:

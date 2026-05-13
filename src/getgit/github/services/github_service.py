@@ -1,13 +1,9 @@
 """High-level facade aggregating per-resource GitHub providers."""
 
-from ..application import AppSettings
-from ..github import (
-    CommitProvider,
-    PullRequestFetchResult,
-    PullRequestProvider,
-    RepoProvider,
-)
-from ..models import Commit
+from ...application import AppSettings
+from ...models import Commit
+from ..data import PullRequestFetchResult
+from ..providers import CommitProvider, PullRequestProvider, RepoProvider
 
 
 class GithubService:

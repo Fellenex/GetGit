@@ -15,11 +15,11 @@ from ..exporting import ReportExporter
 from ..github import (
     CommitProvider,
     GithubClient,
+    GithubService,
     PullRequestProvider,
     RepoProvider,
 )
 from ..models import AuthorshipReport
-from ..services import GithubService
 from .data import AppSettings
 
 
