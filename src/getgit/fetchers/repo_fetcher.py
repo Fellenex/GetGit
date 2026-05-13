@@ -1,6 +1,6 @@
 """Repository discovery — the only place self vs stranger diverges."""
 
-from ..github_client import GithubClient
+from ..github_api import GithubClient
 
 
 class RepoFetcher:

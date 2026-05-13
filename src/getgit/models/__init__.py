@@ -1,9 +1,9 @@
-"""Public model surface — re-exports so callers can `from .models import X`."""
+"""Models domain — dataclasses describing every shape GetGit emits."""
 
-from .base import JSONModel
+from .authorship_report import AuthorshipReport
 from .commit import Commit
+from .json_model import JSONModel
 from .pull_request import PullRequest
-from .report import AuthorshipReport
 from .review import Review
 
 __all__ = ["JSONModel", "Commit", "PullRequest", "Review", "AuthorshipReport"]

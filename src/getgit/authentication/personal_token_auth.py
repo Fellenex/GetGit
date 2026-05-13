@@ -1,35 +1,18 @@
-"""Authentication strategies for the GitHub API.
-
-Each strategy produces a configured `GithubClient`. Fetchers depend on
-the client, never on the token itself, so swapping PAT for OAuth in
-phase 2 won't touch fetcher code.
-"""
+"""Personal Access Token implementation of the `Auth` protocol."""
 
 import os
-from typing import Protocol
 
 import httpx
 
-from .github_client import GithubClient
-
-
-class Auth(Protocol):
-    """Common interface for any auth strategy.
-
-    An implementation knows how to produce a `GithubClient` that is
-    pre-authenticated against `https://api.github.com`.
-    """
-
-    def client(self) -> GithubClient:
-        """Return a `GithubClient` ready to make authenticated calls."""
-        ...
+from ..github_api import GithubClient
 
 
 class PersonalTokenAuth:
     """Authenticates via a GitHub Personal Access Token (PAT).
 
-    The token is read from the `GITHUB_TOKEN` environment variable unless
-    one is passed explicitly. This is the phase-1 default.
+    The token is read from the `GITHUB_TOKEN` environment variable
+    unless one is passed explicitly. This is the phase-1 default; phase
+    2 will introduce an OAuth implementation alongside it.
     """
 
     def __init__(self, token: str | None = None):

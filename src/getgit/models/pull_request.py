@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .base import JSONModel
+from .json_model import JSONModel
 
 
 @dataclass

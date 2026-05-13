@@ -77,6 +77,9 @@ Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB o
 - Default to no inline comments. Add one only when the *why* is non-obvious.
 - **Every function and class gets a docstring.** Even one-liners. State *what* it does and, when it isn't obvious, *why*. Document non-trivial parameters and return shapes. Module-level docstrings are encouraged when a file's role isn't clear from its name.
 - **Public methods/functions appear above private ones** (`_`-prefixed) in every file. Reading top-to-bottom should walk the public surface first, then drop into helpers.
+- **One class per file.** A file may contain module-level helper functions or constants that support its class, but never two classes.
+- **Filenames mirror their class name** in `snake_case`. `AppSettings` lives in `app_settings.py`; `JSONModel` in `json_model.py`. The matching is mechanical so nothing is hidden.
+- **Source is organized by domain**, not by technical layer. Each domain is a folder under `src/getgit/` with an `__init__.py` that re-exports the public types. Current domains: `authentication/`, `cli/`, `fetchers/`, `github_api/`, `models/`. Single-file utilities (e.g. `storage.py`) stay top-level until they grow a class to organize.
 - Prefer editing existing files over creating new ones.
 
 ## Recording architectural decisions
@@ -223,6 +226,11 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Decision:** within any file (or class), the public surface comes first; `_`-prefixed helpers go below.
 **Alternatives:** alphabetical ordering; helpers above their callers (a la C); no rule.
 **Why:** reading top-to-bottom should answer "what does this thing do?" before "how does it do it?". This also localizes the public API at a glance without scanning past helpers.
+
+### 2026-05-12 — Source organized by domain; one class per file; filename = snake_case(class)
+**Decision:** every class lives in its own file named after it (`AppSettings` → `app_settings.py`). Files are grouped into domain folders under `src/getgit/`: `authentication/`, `cli/`, `fetchers/`, `github_api/`, `models/`. Each domain has an `__init__.py` that re-exports its public types so external callers do `from getgit.fetchers import PullRequestFetcher` instead of digging into module paths. Tests mirror the same layout (`tests/getgit/<domain>/test_<file>.py`). `Auth` (Protocol) and `PersonalTokenAuth` are in separate files inside `authentication/`. Single-file utilities (e.g. `storage.py`) stay top-level until they grow a class.
+**Alternatives:** organize by technical layer (`controllers/`, `services/`, `repositories/`); keep multi-class files where classes are tightly related (e.g. `auth.py` with both `Auth` and `PersonalTokenAuth`); leave file names short (`prs.py`, `repos.py`) and rely on imports for disambiguation.
+**Why:** domain folders make "where does X go?" answerable from the domain name alone — phase 2 will add OAuth, which slots into `authentication/` next to `personal_token_auth.py` without touching anything else. One-class-per-file plus matching filenames removes the small-but-cumulative friction of "which file holds this class?" — the answer is mechanical. Re-export `__init__.py`s keep external imports stable as files move within a domain.
 
 ### 2026-05-12 — Manual constructor DI now; FastAPI `Depends` in phase 2/3
 **Decision:** dependency injection is manual constructor injection in phase 1 — `Fetcher(client)`, wired once inside `cli._run`. When the FastAPI layer lands in phase 2, request-scoped collaborators (the `GithubClient`, the per-request token, eventually a session/DB handle) move to `fastapi.Depends` providers. No standalone DI container (e.g. `dependency-injector`, `injector`, `punq`) until the wiring graph genuinely outgrows what `Depends` handles cleanly.

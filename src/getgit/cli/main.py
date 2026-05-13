@@ -5,14 +5,12 @@ from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
+from ..authentication import PersonalTokenAuth
+from ..fetchers import CommitFetcher, PullRequestFetcher, RepoFetcher
+from ..models import AuthorshipReport
+from ..storage import write_report
+from .app_settings import AppSettings
 from .argument_parser import ArgumentParser
-from .auth import PersonalTokenAuth
-from .fetchers.commits import CommitFetcher
-from .fetchers.prs import PullRequestFetcher
-from .fetchers.repos import RepoFetcher
-from .models import AuthorshipReport
-from .settings import AppSettings
-from .storage import write_report
 
 
 def main(argv: list[str] | None = None) -> int:

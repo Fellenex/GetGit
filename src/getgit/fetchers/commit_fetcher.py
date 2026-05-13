@@ -4,7 +4,7 @@ from datetime import datetime
 
 import httpx
 
-from ..github_client import GithubClient
+from ..github_api import GithubClient
 from ..models import Commit
 
 

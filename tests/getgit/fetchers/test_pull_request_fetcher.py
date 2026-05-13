@@ -1,6 +1,6 @@
 """Tests for the PR fetcher's pure helpers."""
 
-from getgit.fetchers.prs import _extract_jira_codes, _file_extension
+from getgit.fetchers.pull_request_fetcher import _extract_jira_codes, _file_extension
 
 
 def test_file_extension_simple():
