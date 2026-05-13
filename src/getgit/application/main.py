@@ -14,9 +14,11 @@ from ..authentication import GithubSettings
 from ..exporting import ReportExporter
 from ..github import (
     AuthorshipReport,
+    Commit,
     CommitProvider,
     GithubClient,
     GithubService,
+    PullRequestFetchResult,
     PullRequestProvider,
     RateLimitExceededError,
     RepoProvider,
@@ -27,15 +29,25 @@ from .data import AppSettings
 def run(settings: AppSettings) -> int:
     """Execute the full scrape and write the report to disk.
 
-    Returns a process-style exit code (`0` on success). Raises
-    `RuntimeError` if `settings.access_token` is missing — failing fast
-    here beats discovering it mid-scrape via a 401 from GitHub.
+    Returns a process exit code:
+    - `0` on full success.
+    - `2` on partial save — a 403 was hit mid-scrape and the report was
+      written from whatever data was collected so far.
+
+    Raises `RuntimeError` if `settings.access_token` is missing —
+    failing fast here beats discovering it mid-scrape via a 401 from
+    GitHub.
     """
     if not settings.access_token:
         raise RuntimeError(
             "No GitHub access token in AppSettings. "
             "Set GITHUB_TOKEN (CLI) or supply an OAuth token (web)."
         )
+
+    repos: list[dict] = []
+    pr_result = PullRequestFetchResult()
+    commits: list[Commit] = []
+    partial = False
 
     github_settings = GithubSettings(auth_token=settings.access_token)
     try:
@@ -72,9 +84,10 @@ def run(settings: AppSettings) -> int:
             )
             print(f"Found {len(commits)} commits", file=sys.stderr)
     except RateLimitExceededError as e:
-        print(f"Aborting: {e}", file=sys.stderr)
-        print("No report written. Try again later or use --max-* flags.", file=sys.stderr)
-        return 1
+        partial = True
+        print(f"Hit rate limit: {e}", file=sys.stderr)
+        repos, pr_result, commits = _absorb_partial(e.partial, repos, pr_result, commits)
+        print("Saving partial report from data collected so far.", file=sys.stderr)
 
     report = AuthorshipReport(
         username=settings.username,
@@ -87,4 +100,26 @@ def run(settings: AppSettings) -> int:
     paths = ReportExporter().write_report(report, settings.out_dir)
     for label, p in paths.items():
         print(f"Wrote {label}: {p}")
-    return 0
+    return 2 if partial else 0
+
+
+def _absorb_partial(
+    partial: object,
+    repos: list[dict],
+    pr_result: PullRequestFetchResult,
+    commits: list[Commit],
+) -> tuple[list[dict], PullRequestFetchResult, list[Commit]]:
+    """Route the failing provider's partial payload back into the local result vars.
+
+    The orchestration is sequential, so only one provider was running
+    when the rate limit hit — we can identify which one by the partial
+    payload's type (and, for the two `list` cases, by element type).
+    Anything we already finished keeps its earlier value.
+    """
+    if isinstance(partial, PullRequestFetchResult):
+        return repos, partial, commits
+    if isinstance(partial, list) and partial:
+        if isinstance(partial[0], Commit):
+            return repos, pr_result, partial
+        return partial, pr_result, commits
+    return repos, pr_result, commits

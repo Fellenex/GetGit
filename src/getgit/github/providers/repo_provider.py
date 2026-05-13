@@ -1,6 +1,6 @@
 """Repository discovery — the only place self vs stranger diverges."""
 
-from ..clients import GithubClient
+from ..clients import GithubClient, RateLimitExceededError
 
 
 class RepoProvider:
@@ -19,12 +19,20 @@ class RepoProvider:
 
         `is_self=True` uses `/user/repos` (returns public + private the
         PAT can see). `is_self=False` uses `/users/{username}/repos`
-        (public only).
+        (public only). On rate limit, attaches the partial list already
+        collected to the raised `RateLimitExceededError`.
         """
-        if is_self:
-            return list(
-                self._client.paginate(
+        repos: list[dict] = []
+        try:
+            if is_self:
+                pages = self._client.paginate(
                     "/user/repos", {"affiliation": "owner", "visibility": "all"}
                 )
-            )
-        return list(self._client.paginate(f"/users/{username}/repos"))
+            else:
+                pages = self._client.paginate(f"/users/{username}/repos")
+            for repo in pages:
+                repos.append(repo)
+            return repos
+        except RateLimitExceededError as e:
+            e.partial = repos
+            raise

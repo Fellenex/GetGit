@@ -1,8 +1,17 @@
 """Tests for PullRequestProvider helpers and sparse-breakdown logic."""
 
+from unittest.mock import Mock
+
+import pytest
+
 from _support.github import FakeGithubClient
 
-from getgit.github import PullRequestProvider
+from getgit.github import (
+    GithubClient,
+    PullRequestFetchResult,
+    PullRequestProvider,
+    RateLimitExceededError,
+)
 
 
 def test_file_extension_simple():
@@ -85,3 +94,18 @@ def test_ext_breakdown_no_changes_yields_empty_dicts():
 
     assert additions == {}
     assert deletions == {}
+
+
+def test_rate_limit_attaches_partial_pr_result_to_exception():
+    """If we 403 mid-fetch, the partial PullRequestFetchResult rides on the exception."""
+    client = Mock(spec=GithubClient)
+    client.paginate.side_effect = RateLimitExceededError("too many")
+
+    with pytest.raises(RateLimitExceededError) as excinfo:
+        PullRequestProvider(client).fetch("alice")
+
+    # Even though we got nothing materialized, the partial should still be
+    # an empty PullRequestFetchResult (so the orchestrator can rely on the type).
+    assert isinstance(excinfo.value.partial, PullRequestFetchResult)
+    assert excinfo.value.partial.authored == []
+    assert excinfo.value.partial.participated == []

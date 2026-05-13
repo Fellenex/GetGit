@@ -172,7 +172,7 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 
 **Rule of thumb:** if you expect more than ~400 PRs per set, use `--no-extension-breakdown` and/or `--max-prs` to stay under one hour's budget.
 
-**On 403:** the client locks itself on the first `403`, aborts the scrape, prints a one-line message to stderr, and exits with code `1` — no report is written, and no further GitHub calls are made. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
+**On 403:** the client locks itself on the first `403`, aborts the scrape, and **writes a partial report from whatever data was already collected** — exit code `2` (vs. `0` for full success). Each provider attaches its in-progress accumulator to the raised exception so nothing collected is wasted. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
 
 ## Tests
 

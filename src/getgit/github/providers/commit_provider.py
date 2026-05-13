@@ -4,7 +4,7 @@ from datetime import datetime
 
 import httpx
 
-from ..clients import GithubClient
+from ..clients import GithubClient, RateLimitExceededError
 from ..data import Commit
 
 
@@ -31,26 +31,32 @@ class CommitProvider:
 
         `limit` caps the number of commits returned. `pr_index` (built
         by `PullRequestProvider.fetch`) maps `(repo, sha)` → PR number;
-        commits not in the index keep `pull_request_number=None`.
+        commits not in the index keep `pull_request_number=None`. On
+        rate limit, attaches the partial commit list already collected
+        to the raised `RateLimitExceededError`.
         """
         pr_index = pr_index or {}
         commits: list[Commit] = []
-        for repo in repos:
-            if limit is not None and len(commits) >= limit:
-                break
-            full_name = repo["full_name"]
-            try:
-                for raw in self._client.paginate(
-                    f"/repos/{full_name}/commits", {"author": username}
-                ):
-                    commits.append(self._build_commit(raw, full_name, pr_index))
-                    if limit is not None and len(commits) >= limit:
-                        break
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code in (404, 409):
-                    continue
-                raise
-        return commits
+        try:
+            for repo in repos:
+                if limit is not None and len(commits) >= limit:
+                    break
+                full_name = repo["full_name"]
+                try:
+                    for raw in self._client.paginate(
+                        f"/repos/{full_name}/commits", {"author": username}
+                    ):
+                        commits.append(self._build_commit(raw, full_name, pr_index))
+                        if limit is not None and len(commits) >= limit:
+                            break
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code in (404, 409):
+                        continue
+                    raise
+            return commits
+        except RateLimitExceededError as e:
+            e.partial = commits
+            raise
 
     @staticmethod
     def _build_commit(

@@ -1,8 +1,12 @@
 """Tests for RepoProvider."""
 
+from unittest.mock import Mock
+
+import pytest
+
 from _support.github import FakeGithubClient
 
-from getgit.github import RepoProvider
+from getgit.github import GithubClient, RateLimitExceededError, RepoProvider
 
 
 def test_self_path_uses_user_repos_with_owner_affiliation():
@@ -35,3 +39,19 @@ def test_returns_list_not_iterator():
 
     assert isinstance(out, list)
     assert len(out) == 2
+
+
+def test_rate_limit_attaches_partial_repos_to_exception():
+    """If paginate yields some repos then 403s, the partial list should ride on the exception."""
+    def yielding_then_403(*_args, **_kwargs):
+        yield {"full_name": "x/a"}
+        yield {"full_name": "x/b"}
+        raise RateLimitExceededError("too many")
+
+    client = Mock(spec=GithubClient)
+    client.paginate.side_effect = yielding_then_403
+
+    with pytest.raises(RateLimitExceededError) as excinfo:
+        RepoProvider(client).list_repos("x", is_self=False)
+
+    assert excinfo.value.partial == [{"full_name": "x/a"}, {"full_name": "x/b"}]

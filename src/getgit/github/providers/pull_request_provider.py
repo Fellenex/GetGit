@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from pathlib import PurePosixPath
 
-from ..clients import GithubClient
+from ..clients import GithubClient, RateLimitExceededError
 from ..data import PullRequest, PullRequestFetchResult, Review
 
 
@@ -33,43 +33,49 @@ class PullRequestProvider:
         streams for the user's comment count, and the PR's commit list
         for the `commit_pr_index`.
 
-        `limit` caps each set independently.
+        `limit` caps each set independently. On rate limit, attaches
+        the partially-built `PullRequestFetchResult` to the raised
+        `RateLimitExceededError` so the orchestrator can still emit a
+        partial report.
         """
         out = PullRequestFetchResult()
+        try:
+            authored_keys: set[tuple[str, int]] = set()
+            for issue in self._client.paginate(
+                "/search/issues", {"q": f"type:pr author:{username} is:closed"}
+            ):
+                if limit is not None and len(out.authored) >= limit:
+                    break
+                repo_full = self._key_from_repo_url(issue["repository_url"])
+                number = issue["number"]
+                authored_keys.add((repo_full, number))
 
-        authored_keys: set[tuple[str, int]] = set()
-        for issue in self._client.paginate(
-            "/search/issues", {"q": f"type:pr author:{username} is:closed"}
-        ):
-            if limit is not None and len(out.authored) >= limit:
-                break
-            repo_full = self._key_from_repo_url(issue["repository_url"])
-            number = issue["number"]
-            authored_keys.add((repo_full, number))
+                pr_obj, reviews = self._hydrate_pr(
+                    repo_full, number, username, fetch_extensions
+                )
+                out.authored.append(pr_obj)
+                out.reviews.extend(reviews)
+                self._index_pr_commits(repo_full, number, out.commit_pr_index)
 
-            pr_obj, reviews = self._hydrate_pr(
-                repo_full, number, username, fetch_extensions
-            )
-            out.authored.append(pr_obj)
-            out.reviews.extend(reviews)
-            self._index_pr_commits(repo_full, number, out.commit_pr_index)
+            participated_keys = (
+                self._search_keys(f"type:pr commenter:{username} is:closed")
+                | self._search_keys(f"type:pr reviewed-by:{username} is:closed")
+            ) - authored_keys
 
-        participated_keys = (
-            self._search_keys(f"type:pr commenter:{username} is:closed")
-            | self._search_keys(f"type:pr reviewed-by:{username} is:closed")
-        ) - authored_keys
+            for repo_full, number in sorted(participated_keys):
+                if limit is not None and len(out.participated) >= limit:
+                    break
+                pr_obj, reviews = self._hydrate_pr(
+                    repo_full, number, username, fetch_extensions
+                )
+                out.participated.append(pr_obj)
+                out.reviews.extend(reviews)
+                self._index_pr_commits(repo_full, number, out.commit_pr_index)
 
-        for repo_full, number in sorted(participated_keys):
-            if limit is not None and len(out.participated) >= limit:
-                break
-            pr_obj, reviews = self._hydrate_pr(
-                repo_full, number, username, fetch_extensions
-            )
-            out.participated.append(pr_obj)
-            out.reviews.extend(reviews)
-            self._index_pr_commits(repo_full, number, out.commit_pr_index)
-
-        return out
+            return out
+        except RateLimitExceededError as e:
+            e.partial = out
+            raise
 
     def _search_keys(self, query: str) -> set[tuple[str, int]]:
         """Run a /search/issues query and collect `(repo, number)` tuples."""

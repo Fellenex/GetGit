@@ -3,10 +3,16 @@
 from unittest.mock import Mock
 
 import httpx
+import pytest
 
 from _support.github import FakeGithubClient
 
-from getgit.github import Commit, CommitProvider, GithubClient
+from getgit.github import (
+    Commit,
+    CommitProvider,
+    GithubClient,
+    RateLimitExceededError,
+)
 
 
 def _commit(sha: str) -> dict:
@@ -69,3 +75,22 @@ def test_fetch_skips_repos_that_return_409_or_404():
     )
 
     assert CommitProvider(client).fetch([{"full_name": "o/empty"}], "alice") == []
+
+
+def test_rate_limit_attaches_partial_commits_to_exception():
+    """If we collect from one repo then 403 on the next, the partial commits ride on the exception."""
+    def per_url(url, _params=None):
+        if url == "/repos/o/r1/commits":
+            return iter([_commit("a"), _commit("b")])
+        raise RateLimitExceededError("too many")
+
+    client = Mock(spec=GithubClient)
+    client.paginate.side_effect = per_url
+
+    repos = [{"full_name": "o/r1"}, {"full_name": "o/r2"}]
+
+    with pytest.raises(RateLimitExceededError) as excinfo:
+        CommitProvider(client).fetch(repos, "alice")
+
+    assert isinstance(excinfo.value.partial, list)
+    assert [c.sha for c in excinfo.value.partial] == ["a", "b"]

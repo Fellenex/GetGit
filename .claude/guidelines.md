@@ -68,7 +68,7 @@ Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB o
 - Authenticated REST: 5,000 req/hr.
 - Search API (`/search/commits`, `/search/issues`): 30 req/min, 1,000-result cap per query — slice by date range to work around.
 - Per-PR cost in the current design: 6 calls (`/pulls/{n}`, `/pulls/{n}/commits`, `/pulls/{n}/files`, `/pulls/{n}/reviews`, `/issues/{n}/comments`, `/pulls/{n}/comments`). `--no-extension-breakdown` drops it to 5.
-- **On 403, `GithubClient` locks itself and raises `RateLimitExceededError` for every subsequent call.** The orchestrator catches and aborts cleanly (exit 1, no report written). No automatic backoff/retry — the operator decides when to re-run.
+- **On 403, `GithubClient` locks itself and raises `RateLimitExceededError` for every subsequent call.** Each provider catches the error, attaches its partial accumulator to `e.partial`, and re-raises. The orchestrator catches at the top, writes a partial report from whatever was collected, and returns exit code `2`. No automatic backoff/retry — the operator decides when to re-run.
 - Always set ETag headers when caching is added to avoid spending quota on unchanged data.
 
 ## Conventions
@@ -260,6 +260,7 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Decision:** `GithubClient.get` and `.paginate` check the response status; a 403 sets a `_rate_limited` flag on the client and raises a new `RateLimitExceededError` (in `github/clients/`). Subsequent calls raise the same error without hitting the network. `application.run` catches it, prints a one-line summary to stderr, and returns exit code `1` — no report is written.
 **Alternatives:** auto-backoff with `Retry-After`; partial-save (write whatever was collected before the 403); silently swallow and continue; differentiate primary rate limit from secondary rate limit from token-scope 403s.
 **Why:** GitHub's rate-limit recovery window is up to an hour — retries inside the same run almost never help and just waste the few requests we have left. Failing fast lets the operator address the cause (re-token, wait, use `--max-*`) and re-run. We don't distinguish 403 sub-causes because the response body is unreliable across endpoint families and the operator action is the same. Partial-save was deliberately deferred — useful but adds save-points to every fetcher; revisit if interrupted long runs become routine.
+**Updated 2026-05-13:** partial save is now in. Each provider catches `RateLimitExceededError` internally, attaches its partial accumulator (`PullRequestFetchResult`, `list[Commit]`, or `list[dict]` for repos) to `e.partial`, and re-raises. `application.run` catches at the top, dispatches the partial back into the local result vars by type, and writes the report regardless. Exit code becomes `2` to distinguish partial save from full success (`0`).
 
 ### 2026-05-13 — Distribute `models/` between `github/data/` and `infrastructure/data/`
 **Decision:** the top-level `models/` domain is gone. GitHub-specific dataclasses (`Commit`, `PullRequest`, `Review`, `AuthorshipReport`) move into `github/data/` alongside `PullRequestFetchResult`. Domain-agnostic building blocks (`JSONModel`) move into a new `infrastructure/data/` domain. `infrastructure/` is the home for anything that's a tool used by domains rather than a domain itself.
