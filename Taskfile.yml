@@ -2,14 +2,14 @@ version: '3'
 
 tasks:
   startup-tiny:
-    desc: Scrape Fellenex with small caps for cheap test runs (50 commits, 50 PRs).
+    desc: 'Scrape USERNAME with small caps for cheap test runs (100 commits, 100 PRs). Usage: task startup-tiny -- USERNAME'
     cmds:
-      - python -m getgit Fellenex --max-commits 100 --max-prs 100
+      - python -m getgit {{.CLI_ARGS}} --max-commits 100 --max-prs 100
 
   startup:
-    desc: Full scrape of Fellenex — no caps.
+    desc: 'Full scrape of USERNAME — no caps. Usage: task startup -- USERNAME'
     cmds:
-      - python -m getgit Fellenex
+      - python -m getgit {{.CLI_ARGS}}
 
   test:
     desc: Run the pytest suite.

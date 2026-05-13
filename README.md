@@ -189,8 +189,8 @@ If you have [Task](https://taskfile.dev) installed:
 
 | Task              | What it does                                              |
 | ----------------- | --------------------------------------------------------- |
-| `task startup-tiny` | Scrape `Fellenex` with `--max-commits 50 --max-prs 50` (cheap test run). |
-| `task startup`      | Full scrape of `Fellenex` with no caps.                 |
+| `task startup-tiny -- USERNAME` | Scrape `USERNAME` with `--max-commits 100 --max-prs 100` (cheap test run). |
+| `task startup -- USERNAME`      | Full scrape of `USERNAME` with no caps.                 |
 | `task test`         | Run the pytest suite.                                   |
 
 ## Architecture and design decisions
