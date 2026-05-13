@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from .auth import PersonalTokenAuth
 from .fetchers.commits import fetch_commits
-from .fetchers.prs import build_commit_pr_index, fetch_pull_requests
+from .fetchers.prs import fetch_pull_requests
 from .fetchers.repos import list_repos, viewer_login
 from .models import AuthorshipReport
 from .storage import write_report
@@ -50,14 +50,19 @@ def main(argv: list[str] | None = None) -> int:
         repos = list_repos(client, args.username, is_self=is_self)
         print(f"Found {len(repos)} repos", file=sys.stderr)
 
-        prs = fetch_pull_requests(client, args.username, limit=args.max_prs)
-        print(f"Found {len(prs)} closed PRs", file=sys.stderr)
-
-        pr_index = build_commit_pr_index(client, prs)
-        print(f"Indexed {len(pr_index)} commits across PRs", file=sys.stderr)
+        pr_result = fetch_pull_requests(client, args.username, limit=args.max_prs)
+        print(
+            f"Found {len(pr_result.pull_requests)} closed PRs "
+            f"(indexed {len(pr_result.commit_pr_index)} commits)",
+            file=sys.stderr,
+        )
 
         commits = fetch_commits(
-            client, repos, args.username, limit=args.max_commits, pr_index=pr_index
+            client,
+            repos,
+            args.username,
+            limit=args.max_commits,
+            pr_index=pr_result.commit_pr_index,
         )
         print(f"Found {len(commits)} commits", file=sys.stderr)
 
@@ -65,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         username=args.username,
         generated_at=datetime.now(timezone.utc),
         commits=commits,
-        pull_requests=prs,
+        pull_requests=pr_result.pull_requests,
     )
     paths = write_report(report, Path(args.out))
     for label, p in paths.items():

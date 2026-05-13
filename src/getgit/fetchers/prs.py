@@ -1,6 +1,7 @@
-"""Pull-request fetcher with JIRA-code extraction."""
+"""Pull-request fetcher with JIRA-code extraction and commit→PR indexing."""
 
 import re
+from dataclasses import dataclass, field
 from datetime import datetime
 
 import httpx
@@ -10,6 +11,19 @@ from ..models import PullRequest
 
 JIRA_RE = re.compile(r"\b[A-Z]{2,10}-\d+\b")
 """Matches JIRA-style ticket codes (e.g. WD-6000, YWFB-300, PTR-8000)."""
+
+
+@dataclass
+class PullRequestFetchResult:
+    """Bundle of everything one pass over the PR list produces.
+
+    `pull_requests` is the list of materialized PRs. `commit_pr_index`
+    maps `(repo, commit_sha)` → PR number for every commit reachable
+    from those PRs — built in the same loop so we walk the PR list once.
+    """
+
+    pull_requests: list[PullRequest] = field(default_factory=list)
+    commit_pr_index: dict[tuple[str, str], int] = field(default_factory=dict)
 
 
 def _extract_jira_codes(*texts: str | None) -> list[str]:
@@ -34,21 +48,22 @@ def _parse_dt(s: str | None) -> datetime | None:
 
 def fetch_pull_requests(
     client: httpx.Client, username: str, limit: int | None = None
-) -> list[PullRequest]:
-    """Find every closed PR authored by `username` and enrich each with detail fields.
+) -> PullRequestFetchResult:
+    """Find every closed PR authored by `username`, enrich it, and index its commits.
 
-    Search returns lightweight issue records; a follow-up
-    `/repos/{owner}/{repo}/pulls/{n}` fetch is required for `additions`,
-    `deletions`, `review_comments`, and `merged_at`. JIRA codes are
-    extracted from the PR title, body, and head branch name.
+    Each PR costs two GitHub calls — one to `/repos/.../pulls/{n}` for
+    detail fields the search API doesn't return (`additions`,
+    `deletions`, `merged_at`, branch ref, `review_comments`) and one to
+    `/repos/.../pulls/{n}/commits` to populate the commit→PR index.
+    Both happen in the same loop so we traverse the PR list exactly once.
 
-    `limit` caps the number of PRs returned — useful for cheap test runs
+    `limit` caps the number of PRs processed — useful for cheap test runs
     so we don't burn rate limit. `None` means no cap.
     """
     query = f"type:pr author:{username} is:closed"
-    results: list[PullRequest] = []
+    out = PullRequestFetchResult()
     for issue in paginate(client, "/search/issues", {"q": query}):
-        if limit is not None and len(results) >= limit:
+        if limit is not None and len(out.pull_requests) >= limit:
             break
         repo_url = issue["repository_url"]
         repo_full = "/".join(repo_url.rsplit("/", 2)[-2:])
@@ -58,7 +73,7 @@ def fetch_pull_requests(
         detail_resp.raise_for_status()
         pr = detail_resp.json()
 
-        results.append(
+        out.pull_requests.append(
             PullRequest(
                 number=number,
                 repo=repo_full,
@@ -74,22 +89,8 @@ def fetch_pull_requests(
                 ),
             )
         )
-    return results
 
+        for commit in paginate(client, f"/repos/{repo_full}/pulls/{number}/commits"):
+            out.commit_pr_index[(repo_full, commit["sha"])] = number
 
-def build_commit_pr_index(
-    client: httpx.Client, prs: list[PullRequest]
-) -> dict[tuple[str, str], int]:
-    """Map `(repo, commit_sha)` → PR number for every commit reachable from a PR.
-
-    Costs one paginated call per PR (typically one page), giving us the
-    commit→PR linkage in O(PRs) rather than the O(commits) cost of
-    `/repos/.../commits/{sha}/pulls`.
-    """
-    index: dict[tuple[str, str], int] = {}
-    for pr in prs:
-        for commit in paginate(
-            client, f"/repos/{pr.repo}/pulls/{pr.number}/commits"
-        ):
-            index[(pr.repo, commit["sha"])] = pr.number
-    return index
+    return out
