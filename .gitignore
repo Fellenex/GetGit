@@ -5,9 +5,11 @@ __pycache__/
 build/
 dist/
 .pytest_cache/
-# Defensive: __init__.py files under tests/ shadow the real `getgit` package
-# and break pytest collection. See .claude/guidelines.md.
+# Defensive: __init__.py files under tests/getgit/ shadow the real `getgit`
+# package and break pytest collection. See .claude/guidelines.md.
+# `tests/_support/` is the exception: it is itself a package importable by tests.
 tests/**/__init__.py
+!tests/_support/**/__init__.py
 .venv/
 venv/
 output/
