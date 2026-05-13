@@ -4,16 +4,16 @@ from pathlib import Path
 
 from ..github import AuthorshipReport
 from .csv_writer import CsvWriter
-from .json_writer import JsonWriter
+from .json_file_handler import JSONFileHandler
 
 
 class ReportExporter:
     """Writes an `AuthorshipReport` as one JSON and one CSV per top-level collection.
 
-    Owns one `JsonWriter` and one `CsvWriter` and dispatches to them
-    per collection. Keeping this as a class (vs. a free function) makes
-    it trivial to swap the writer pair later — phase 2 might inject a
-    `ParquetWriter`, etc.
+    Owns one `JSONFileHandler` and one `CsvWriter` and dispatches to
+    them per collection. Keeping this as a class (vs. a free function)
+    makes it trivial to swap the writer pair later — phase 2 might
+    inject a `ParquetWriter`, etc.
     """
 
     def write_report(self, report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
@@ -35,7 +35,7 @@ class ReportExporter:
         base_dir.mkdir(parents=True, exist_ok=True)
 
         csv_writer = CsvWriter()
-        json_writer = JsonWriter()
+        json_handler = JSONFileHandler()
 
         collections = {
             "commits": report.commits,
@@ -46,6 +46,6 @@ class ReportExporter:
 
         paths: dict[str, Path] = {}
         for name, items in collections.items():
-            paths[f"{name}_json"] = json_writer.write(items, base_dir / f"{name}.json")
+            paths[f"{name}_json"] = json_handler.write(items, base_dir / f"{name}.json")
             paths[f"{name}_csv"] = csv_writer.write(items, base_dir / f"{name}.csv")
         return paths

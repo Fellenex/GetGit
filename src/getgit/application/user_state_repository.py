@@ -1,31 +1,38 @@
-"""Reads and writes the per-username `UserState` at `output/<username>/state.json`."""
+"""Repository (file-backed) for the per-username `UserState`."""
 
-import json
 from datetime import datetime
 from pathlib import Path
 
+from ..exporting import JSONFileHandler
 from .data import UserState
 
 
-class UserStateStore:
-    """File-backed store for one user's `UserState`.
+class UserStateRepository:
+    """File-backed repository for one user's `UserState`.
 
     The file lives at `<out_dir>/<username>/state.json` — sibling to the
     per-run timestamped output subdirectories so `output/<username>/`
-    holds both the watermark and the run history side-by-side. Save
-    delegates to `UserState.to_jsonable()` (inherited from `JSONModel`)
-    so datetime → ISO conversion is centralized in the model layer.
+    holds both the watermark and the run history side-by-side. Delegates
+    JSON I/O to a `JSONFileHandler` (constructor-injected) so the JSON-
+    serialization seam stays in one place; this class is responsible
+    only for path resolution and `UserState` ↔ raw-dict marshaling.
     """
 
-    def __init__(self, out_dir: Path, username: str):
-        """Resolve the on-disk location for this user's state."""
+    def __init__(self, out_dir: Path, username: str, json_handler: JSONFileHandler):
+        """Resolve this user's state path and bind the JSON handler."""
         self._path = out_dir / username / "state.json"
+        self._json_handler = json_handler
 
     def load(self) -> UserState:
-        """Return the saved state, or an empty one if no file exists yet."""
+        """Return the saved state, or an empty one if no file exists yet.
+
+        Reads the raw JSON via the handler and reconstructs a
+        `UserState` from it (handling `datetime` parsing because
+        `JSONModel.to_jsonable()` is one-way).
+        """
         if not self._path.exists():
             return UserState()
-        raw = json.loads(self._path.read_text(encoding="utf-8"))
+        raw = self._json_handler.read(self._path)
         return UserState(
             pr_search_updated_since=self._parse_dt(raw.get("pr_search_updated_since")),
             commits_per_repo={
@@ -38,10 +45,9 @@ class UserStateStore:
         )
 
     def save(self, state: UserState) -> Path:
-        """Serialize the state to disk via `JSONModel.to_jsonable()` and return the path."""
+        """Persist the state via the handler. Returns the path written."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_text(json.dumps(state.to_jsonable(), indent=2), encoding="utf-8")
-        return self._path
+        return self._json_handler.write(state, self._path)
 
     @staticmethod
     def _parse_dt(value: str | None) -> datetime | None:

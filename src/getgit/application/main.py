@@ -11,7 +11,7 @@ import sys
 from datetime import datetime, timezone
 
 from ..authentication import GithubSettings
-from ..exporting import ReportExporter
+from ..exporting import JSONFileHandler, ReportExporter
 from ..github import (
     AuthorshipReport,
     Commit,
@@ -24,7 +24,7 @@ from ..github import (
     RepoProvider,
 )
 from .data import AppSettings, UserState
-from .user_state_store import UserStateStore
+from .user_state_repository import UserStateRepository
 
 
 def run(settings: AppSettings) -> int:
@@ -54,8 +54,10 @@ def run(settings: AppSettings) -> int:
         )
 
     started_at = datetime.now(timezone.utc)
-    state_store = UserStateStore(settings.out_dir, settings.username)
-    state = state_store.load()
+    state_repository = UserStateRepository(
+        settings.out_dir, settings.username, JSONFileHandler()
+    )
+    state = state_repository.load()
     print(_describe_resume(state), file=sys.stderr)
 
     repos: list[dict] = []
@@ -120,7 +122,7 @@ def run(settings: AppSettings) -> int:
         print(f"Wrote {label}: {p}")
 
     new_state = _next_state(state, pr_result, commits, started_at, partial)
-    state_path = state_store.save(new_state)
+    state_path = state_repository.save(new_state)
     print(f"Updated user state: {state_path}", file=sys.stderr)
 
     return 2 if partial else 0

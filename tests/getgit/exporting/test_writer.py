@@ -1,8 +1,12 @@
-"""Tests for the Writer protocol — both concrete writers must satisfy its shape."""
+"""Tests for the Writer protocol — only `CsvWriter` is expected to conform.
+
+`JSONFileHandler` deliberately does *not* implement `Writer` — its
+`write` accepts any JSON-serializable shape, not just `list[JSONModel]`.
+"""
 
 import inspect
 
-from getgit.exporting import CsvWriter, JsonWriter, Writer
+from getgit.exporting import CsvWriter, Writer
 
 
 def test_csv_writer_has_write_method():
@@ -10,13 +14,6 @@ def test_csv_writer_has_write_method():
     assert hasattr(CsvWriter, "write")
     sig = inspect.signature(CsvWriter.write)
     # self + items + filename
-    assert list(sig.parameters) == ["self", "items", "filename"]
-
-
-def test_json_writer_has_write_method():
-    """JsonWriter should expose a `write(items, filename)` method."""
-    assert hasattr(JsonWriter, "write")
-    sig = inspect.signature(JsonWriter.write)
     assert list(sig.parameters) == ["self", "items", "filename"]
 
 
