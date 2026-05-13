@@ -1,19 +1,10 @@
-"""Support classes for GitHub-domain tests."""
+"""Support classes for GitHub-domain tests.
 
-from .erroring_github_client import ErroringGithubClient
+Only generic, reusable helpers belong here. One-off behaviors (raising
+specific errors, recording specific call args) should use
+`unittest.mock.Mock` directly instead of growing a bespoke class.
+"""
+
 from .fake_github_client import FakeGithubClient
-from .fake_http import FakeHttp
-from .fake_response import FakeResponse
-from .recording_commit_provider import RecordingCommitProvider
-from .recording_pull_request_provider import RecordingPullRequestProvider
-from .recording_repo_provider import RecordingRepoProvider
 
-__all__ = [
-    "ErroringGithubClient",
-    "FakeGithubClient",
-    "FakeHttp",
-    "FakeResponse",
-    "RecordingCommitProvider",
-    "RecordingPullRequestProvider",
-    "RecordingRepoProvider",
-]
+__all__ = ["FakeGithubClient"]

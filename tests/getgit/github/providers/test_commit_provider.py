@@ -1,8 +1,12 @@
 """Tests for CommitProvider."""
 
-from _support.github import ErroringGithubClient, FakeGithubClient
+from unittest.mock import Mock
 
-from getgit.github import Commit, CommitProvider
+import httpx
+
+from _support.github import FakeGithubClient
+
+from getgit.github import Commit, CommitProvider, GithubClient
 
 
 def _commit(sha: str) -> dict:
@@ -58,6 +62,10 @@ def test_fetch_respects_limit():
 
 def test_fetch_skips_repos_that_return_409_or_404():
     """Empty/inaccessible repos are silently skipped."""
-    fetcher = CommitProvider(ErroringGithubClient(409))
+    request = httpx.Request("GET", "/repos/o/empty/commits")
+    client = Mock(spec=GithubClient)
+    client.paginate.side_effect = httpx.HTTPStatusError(
+        "fake", request=request, response=httpx.Response(409, request=request)
+    )
 
-    assert fetcher.fetch([{"full_name": "o/empty"}], "alice") == []
+    assert CommitProvider(client).fetch([{"full_name": "o/empty"}], "alice") == []

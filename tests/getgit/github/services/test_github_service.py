@@ -1,15 +1,16 @@
 """Tests for GithubService — verifies it threads AppSettings into each provider."""
 
 from pathlib import Path
-
-from _support.github import (
-    RecordingCommitProvider,
-    RecordingPullRequestProvider,
-    RecordingRepoProvider,
-)
+from unittest.mock import Mock
 
 from getgit.application import AppSettings
-from getgit.github import GithubService
+from getgit.github import (
+    CommitProvider,
+    GithubService,
+    PullRequestFetchResult,
+    PullRequestProvider,
+    RepoProvider,
+)
 
 
 def _settings(**overrides) -> AppSettings:
@@ -27,11 +28,14 @@ def _settings(**overrides) -> AppSettings:
 
 
 def _make_service(**setting_overrides):
-    repo, prs, commits = (
-        RecordingRepoProvider(),
-        RecordingPullRequestProvider(),
-        RecordingCommitProvider(),
-    )
+    """Build a service backed by Mock providers; return service + the three mocks."""
+    repo = Mock(spec=RepoProvider)
+    repo.list_repos.return_value = [{"full_name": "o/r"}]
+    prs = Mock(spec=PullRequestProvider)
+    prs.fetch.return_value = PullRequestFetchResult()
+    commits = Mock(spec=CommitProvider)
+    commits.fetch.return_value = []
+
     service = GithubService(
         repo_provider=repo,
         pull_request_provider=prs,
@@ -47,7 +51,7 @@ def test_fetch_repositories_passes_username_and_is_self():
 
     service.fetch_repositories(is_self=True)
 
-    assert repo.last_call == {"username": "bob", "is_self": True}
+    repo.list_repos.assert_called_once_with("bob", is_self=True)
 
 
 def test_fetch_pull_requests_threads_settings_through():
@@ -56,11 +60,9 @@ def test_fetch_pull_requests_threads_settings_through():
 
     service.fetch_pull_requests()
 
-    assert prs.last_call == {
-        "username": "alice",
-        "limit": 10,
-        "fetch_extensions": False,
-    }
+    prs.fetch.assert_called_once_with(
+        "alice", limit=10, fetch_extensions=False
+    )
 
 
 def test_fetch_commits_passes_repos_and_pr_index():
@@ -71,9 +73,6 @@ def test_fetch_commits_passes_repos_and_pr_index():
 
     service.fetch_commits(repos=repos, pr_index=pr_index)
 
-    assert commits.last_call == {
-        "repos": repos,
-        "username": "alice",
-        "limit": 5,
-        "pr_index": pr_index,
-    }
+    commits.fetch.assert_called_once_with(
+        repos, "alice", limit=5, pr_index=pr_index
+    )
