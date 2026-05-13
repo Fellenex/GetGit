@@ -75,9 +75,19 @@ def test_write_report_emits_a_json_and_csv_per_collection(tmp_path: Path):
         assert p.exists()
 
 
-def test_filenames_use_username_and_collection_name(tmp_path: Path):
-    """Output paths should be `<username>.<collection>.<format>`."""
+def test_files_land_in_per_run_subdirectory(tmp_path: Path):
+    """Output goes to `<out>/<username>/<generated_at>/<collection>.<format>`."""
     paths = write_report(_sample_report(), tmp_path)
 
-    assert paths["commits_json"].name == "u.commits.json"
-    assert paths["reviews_csv"].name == "u.reviews.csv"
+    expected_dir = tmp_path / "u" / "2026-05-12_T00-00-00"
+    assert paths["commits_json"] == expected_dir / "commits.json"
+    assert paths["reviews_csv"] == expected_dir / "reviews.csv"
+    assert expected_dir.is_dir()
+
+
+def test_collection_filenames_no_longer_carry_username_prefix(tmp_path: Path):
+    """The username/timestamp metadata lives in the path, not the filename."""
+    paths = write_report(_sample_report(), tmp_path)
+
+    assert paths["commits_json"].name == "commits.json"
+    assert paths["reviews_csv"].name == "reviews.csv"

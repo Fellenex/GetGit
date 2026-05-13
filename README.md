@@ -52,14 +52,23 @@ When `<username>` matches the authenticated user, both public and private repos 
 
 ## Output
 
-Written to `output/` — one JSON and one CSV per top-level collection:
+Each run writes to a per-run subdirectory `output/<username>/<generated_at>/`, where the timestamp is `YYYY-MM-DD_THH-MM-SS` (hyphens, no colons — works on every filesystem). Inside the subdirectory, one JSON and one CSV per top-level collection:
 
-- `<username>.commits.json` / `.csv`
-- `<username>.authored_pull_requests.json` / `.csv`
-- `<username>.participated_pull_requests.json` / `.csv`
-- `<username>.reviews.json` / `.csv`
+```
+output/
+└── fellenex/
+    └── 2026-05-13_T03-21-34/
+        ├── commits.json
+        ├── commits.csv
+        ├── authored_pull_requests.json
+        ├── authored_pull_requests.csv
+        ├── participated_pull_requests.json
+        ├── participated_pull_requests.csv
+        ├── reviews.json
+        └── reviews.csv
+```
 
-Each JSON file is a top-level array of homogeneous rows. There is intentionally no unified `<username>.json` aggregating everything; consumers wanting that shape can join the per-collection files themselves.
+The username + timestamp in the path captures the metadata that used to live at the top of the unified JSON. Each JSON file is a top-level array of homogeneous rows.
 
 ### JSON row shapes
 

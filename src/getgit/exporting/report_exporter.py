@@ -10,17 +10,21 @@ from .json_writer import JsonWriter
 def write_report(report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
     """Write each top-level collection in `report` as both JSON and CSV.
 
-    Output filenames are `<username>.<collection>.<format>`. Returns a
-    dict of `{label: path}` for everything written. Existing files are
-    overwritten.
+    Files land in a per-run subdirectory:
+    `<out_dir>/<username>/<generated_at>/<collection>.{json,csv}`. The
+    timestamp uses `%Y-%m-%d_T%H-%M-%S` (hyphens, no colons) so the path
+    is valid on every filesystem we care about. The username + timestamp
+    in the path captures the metadata that used to live at the top of
+    the unified JSON.
 
-    Top-level metadata (`username`, `generated_at`) is implicit in the
-    filenames and the file mtimes — there is intentionally no unified
-    `<username>.json` aggregating everything; consumers wanting that
-    shape can join the per-collection files themselves.
+    Returns a dict of `{label: path}` for everything written. Existing
+    files in the same per-run directory are overwritten.
     """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    base = report.username
+    base_dir = out_dir / report.username / report.generated_at.strftime(
+        "%Y-%m-%d_T%H-%M-%S"
+    )
+    base_dir.mkdir(parents=True, exist_ok=True)
+
     csv_writer = CsvWriter()
     json_writer = JsonWriter()
 
@@ -33,10 +37,6 @@ def write_report(report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
 
     paths: dict[str, Path] = {}
     for name, items in collections.items():
-        paths[f"{name}_json"] = json_writer.write(
-            items, out_dir / f"{base}.{name}.json"
-        )
-        paths[f"{name}_csv"] = csv_writer.write(
-            items, out_dir / f"{base}.{name}.csv"
-        )
+        paths[f"{name}_json"] = json_writer.write(items, base_dir / f"{name}.json")
+        paths[f"{name}_csv"] = csv_writer.write(items, base_dir / f"{name}.csv")
     return paths
