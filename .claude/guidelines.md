@@ -114,14 +114,14 @@ An "architectural decision" includes:
 
 Trivial implementation details (variable names, one-line refactors) do not belong in the log.
 
-**Format** — append entries to `architecturalDecisions.md` in chronological order:
+**Format** — append entries to `architecturalDecisions.md` in chronological order. Each entry gets a stable `[ADR-NNN]` identifier (next unused number, zero-padded to 3 digits) so other documents can link to it:
 
 ```
-### YYYY-MM-DD — Short title
+### [ADR-NNN] YYYY-MM-DD — Short title
 **Decision:** what was chosen.
 **Alternatives:** what was considered and rejected.
 **Why:** the reasoning, including any constraints or future-phase implications.
 ```
 
-If a prior decision is reversed, annotate the original entry with a `**Reversed YYYY-MM-DD:**` (or `**Updated YYYY-MM-DD:**`) note pointing at the newer entry — never silently overwrite.
+IDs **never change** once assigned. If a prior decision is reversed, annotate the original entry with a `**Reversed YYYY-MM-DD by [ADR-NNN]:**` (or `**Updated YYYY-MM-DD:**`) note, and the reversing entry leads with `**Reverses [ADR-NNN].**`. Never silently overwrite.
 
