@@ -37,6 +37,15 @@ When `<username>` matches the authenticated user, both public and private repos 
 
 Output: `output/<username>.json` containing commits and closed/merged pull requests with extracted JIRA codes.
 
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+Tests live under `tests/getgit/`, mirroring the package layout.
+
 ## Architecture
 
 See [.claude/guidelines.md](.claude/guidelines.md) for the design contract that shapes this project.

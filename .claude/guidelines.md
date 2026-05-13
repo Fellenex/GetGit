@@ -161,6 +161,11 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** keep the order-preserving list-with-`in`-check; `dict.fromkeys` for ordered dedupe; return the set directly.
 **Why:** dedupe is O(1) per insert (vs. O(n) for the list scan), and a sorted output makes the JSON deterministic across runs — diffing two reports stays meaningful. Returning a list (not a set) preserves JSON-serializability without special-casing in `JSONModel`.
 
+### 2026-05-12 — Pytest under `tests/`, mirroring the package layout
+**Decision:** test framework is `pytest`, declared as a `[dev]` optional dependency in `pyproject.toml`. Tests live under `tests/getgit/...` mirroring `src/getgit/...`. Pytest config sets `pythonpath = ["src"]` and `--import-mode=importlib`. **Test directories must not contain `__init__.py`** — they would shadow the real `getgit` package and break imports.
+**Alternatives:** `unittest` (stdlib, no install needed); flat `tests/` dir without subdirs; rely on `pip install -e .` instead of `pythonpath`.
+**Why:** pytest is the de facto standard — concise asserts, fixtures, and a vast plugin ecosystem (will matter when we want HTTP mocking via `respx` or `pytest-httpx`). Mirroring the package keeps "where do I add a test for this file?" trivial. `importlib` import mode plus no `__init__.py` files in `tests/` is the only combination that avoids the namespace collision with the real `getgit` package; `pythonpath` keeps tests runnable without an editable install.
+
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
 **Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.
