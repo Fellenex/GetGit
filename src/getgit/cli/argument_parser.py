@@ -43,6 +43,12 @@ class ArgumentParser:
             action="store_true",
             help="Skip /pulls/{n}/files; store totals only under the '*' key.",
         )
+        parser.add_argument(
+            "--repo",
+            default=None,
+            metavar="OWNER/NAME",
+            help="Scrape only this repo (e.g. octocat/hello-world). Skips repo discovery.",
+        )
         self._parser = parser
 
     def parse(self, argv: list[str] | None = None) -> AppSettings:
@@ -61,4 +67,5 @@ class ArgumentParser:
             max_prs=ns.max_prs,
             fetch_extensions=not ns.no_extension_breakdown,
             access_token=os.environ.get("GITHUB_TOKEN"),
+            target_repo=ns.repo,
         )

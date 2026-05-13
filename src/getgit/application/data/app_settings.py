@@ -21,3 +21,4 @@ class AppSettings:
     max_prs: int | None
     fetch_extensions: bool
     access_token: str | None
+    target_repo: str | None = None

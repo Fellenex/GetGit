@@ -66,3 +66,17 @@ def test_access_token_is_none_when_env_missing(monkeypatch):
     settings = ArgumentParser().parse(["alice"])
 
     assert settings.access_token is None
+
+
+def test_target_repo_defaults_to_none():
+    """Without --repo, `target_repo` is None (full repo discovery)."""
+    settings = ArgumentParser().parse(["alice"])
+
+    assert settings.target_repo is None
+
+
+def test_target_repo_populated_from_repo_flag():
+    """`--repo OWNER/NAME` should land on `AppSettings.target_repo`."""
+    settings = ArgumentParser().parse(["alice", "--repo", "octocat/hello-world"])
+
+    assert settings.target_repo == "octocat/hello-world"

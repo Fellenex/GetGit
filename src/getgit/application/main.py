@@ -83,8 +83,15 @@ def run(settings: AppSettings) -> int:
                 settings=settings,
             )
 
-            repos = github.fetch_repositories(is_self=is_self)
-            print(f"Found {len(repos)} repos", file=sys.stderr)
+            if settings.target_repo:
+                repos = [{"full_name": settings.target_repo}]
+                print(
+                    f"Targeting single repo: {settings.target_repo} (skipping repo discovery)",
+                    file=sys.stderr,
+                )
+            else:
+                repos = github.fetch_repositories(is_self=is_self)
+                print(f"Found {len(repos)} repos", file=sys.stderr)
 
             pr_result = github.fetch_pull_requests(
                 since=state.pr_search_updated_since

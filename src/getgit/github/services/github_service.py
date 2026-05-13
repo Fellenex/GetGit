@@ -43,12 +43,15 @@ class GithubService:
 
         `since`, when set, scopes each search to PRs updated on/after
         that timestamp — passed through to `PullRequestProvider.fetch`.
+        `target_repo` (from settings) further scopes searches to a
+        single `repo:OWNER/NAME` when set.
         """
         return self._pull_request_provider.fetch(
             self._settings.username,
             limit=self._settings.max_prs,
             fetch_extensions=self._settings.fetch_extensions,
             since=since,
+            target_repo=self._settings.target_repo,
         )
 
     def fetch_commits(

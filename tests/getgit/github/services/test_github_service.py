@@ -61,8 +61,17 @@ def test_fetch_pull_requests_threads_settings_through():
     service.fetch_pull_requests()
 
     prs.fetch.assert_called_once_with(
-        "alice", limit=10, fetch_extensions=False, since=None
+        "alice", limit=10, fetch_extensions=False, since=None, target_repo=None
     )
+
+
+def test_fetch_pull_requests_propagates_target_repo_from_settings():
+    """settings.target_repo should be forwarded to PullRequestProvider.fetch as target_repo."""
+    service, _, prs, _ = _make_service(target_repo="octocat/hello-world")
+
+    service.fetch_pull_requests()
+
+    assert prs.fetch.call_args.kwargs["target_repo"] == "octocat/hello-world"
 
 
 def test_fetch_commits_passes_repos_and_pr_index():

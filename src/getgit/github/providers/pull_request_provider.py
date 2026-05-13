@@ -25,6 +25,7 @@ class PullRequestProvider:
         limit: int | None = None,
         fetch_extensions: bool = True,
         since: datetime | None = None,
+        target_repo: str | None = None,
     ) -> PullRequestFetchResult:
         """Collect every closed PR the user authored or participated in.
 
@@ -36,9 +37,11 @@ class PullRequestProvider:
         for the `commit_pr_index`.
 
         `since` constrains every search query with `updated:>=<since>`
-        so resumed runs skip PRs that haven't changed. `limit` caps
-        each set independently. On rate limit, attaches the
-        partially-built `PullRequestFetchResult` to the raised
+        so resumed runs skip PRs that haven't changed. `target_repo`
+        (e.g. `"octocat/hello-world"`) constrains every search query
+        with `repo:OWNER/NAME` so only that repo's PRs are returned.
+        `limit` caps each set independently. On rate limit, attaches
+        the partially-built `PullRequestFetchResult` to the raised
         `RateLimitExceededError` so the orchestrator can still emit a
         partial report.
         """
@@ -47,7 +50,7 @@ class PullRequestProvider:
             authored_keys: set[tuple[str, int]] = set()
             for issue in self._client.paginate(
                 "/search/issues",
-                {"q": self._build_query(f"author:{username}", since)},
+                {"q": self._build_query(f"author:{username}", since, target_repo)},
             ):
                 if limit is not None and len(out.authored) >= limit:
                     break
@@ -63,8 +66,12 @@ class PullRequestProvider:
                 self._index_pr_commits(repo_full, number, out.commit_pr_index)
 
             participated_keys = (
-                self._search_keys(self._build_query(f"commenter:{username}", since))
-                | self._search_keys(self._build_query(f"reviewed-by:{username}", since))
+                self._search_keys(
+                    self._build_query(f"commenter:{username}", since, target_repo)
+                )
+                | self._search_keys(
+                    self._build_query(f"reviewed-by:{username}", since, target_repo)
+                )
             ) - authored_keys
 
             for repo_full, number in sorted(participated_keys):
@@ -83,11 +90,15 @@ class PullRequestProvider:
             raise
 
     @staticmethod
-    def _build_query(scope: str, since: datetime | None) -> str:
-        """Compose a /search/issues `q=` value, appending `updated:>=` when `since` is set."""
+    def _build_query(
+        scope: str, since: datetime | None, target_repo: str | None
+    ) -> str:
+        """Compose a /search/issues `q=` value with optional `updated:>=` and `repo:` filters."""
         parts = ["type:pr", scope, "is:closed"]
         if since is not None:
             parts.append(f"updated:>={since.isoformat()}")
+        if target_repo is not None:
+            parts.append(f"repo:{target_repo}")
         return " ".join(parts)
 
     def _search_keys(self, query: str) -> set[tuple[str, int]]:

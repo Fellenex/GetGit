@@ -96,6 +96,22 @@ def test_ext_breakdown_no_changes_yields_empty_dicts():
     assert deletions == {}
 
 
+def test_build_query_appends_repo_filter_when_target_repo_set():
+    """`target_repo` should add `repo:OWNER/NAME` to the search query."""
+    out = PullRequestProvider._build_query(
+        "author:alice", since=None, target_repo="octocat/hello-world"
+    )
+    assert out == "type:pr author:alice is:closed repo:octocat/hello-world"
+
+
+def test_build_query_omits_repo_filter_when_target_repo_none():
+    """When `target_repo` is None the query should not contain `repo:`."""
+    out = PullRequestProvider._build_query(
+        "author:alice", since=None, target_repo=None
+    )
+    assert "repo:" not in out
+
+
 def test_rate_limit_attaches_partial_pr_result_to_exception():
     """If we 403 mid-fetch, the partial PullRequestFetchResult rides on the exception."""
     client = Mock(spec=GithubClient)

@@ -36,9 +36,9 @@ For each PR:
 ```bash
 pip install -e .
 cp .env.example .env       # then edit .env and paste your PAT
-python -m getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension-breakdown]
+python -m getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension-breakdown] [--repo OWNER/NAME]
 # or, after install:
-getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension-breakdown]
+getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension-breakdown] [--repo OWNER/NAME]
 ```
 
 | Flag | Purpose |
@@ -47,6 +47,7 @@ getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension
 | `--max-commits N` | Cap commits collected. Useful for cheap test runs. |
 | `--max-prs N` | Cap PRs collected per set (authored / participated). |
 | `--no-extension-breakdown` | Skip the per-file API call; store totals only under the `"*"` key. Saves one paginated call per PR. |
+| `--repo OWNER/NAME` | Scope the scrape to a single repo. Skips repo discovery; PR searches gain `repo:OWNER/NAME`; commits are listed only for that repo. |
 
 When `<username>` matches the authenticated user, both public and private repos are scanned. Otherwise only public data is returned.
 
@@ -211,6 +212,7 @@ If you have [Task](https://taskfile.dev) installed:
 | ----------------- | --------------------------------------------------------- |
 | `task startup-tiny -- USERNAME` | Scrape `USERNAME` with `--max-commits 100 --max-prs 100` (cheap test run). |
 | `task startup -- USERNAME`      | Full scrape of `USERNAME` with no caps.                 |
+| `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo, no caps (one repo is small enough). |
 | `task test`         | Run the pytest suite.                                   |
 
 ## Architecture and design decisions

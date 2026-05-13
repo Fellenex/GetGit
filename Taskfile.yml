@@ -11,6 +11,11 @@ tasks:
     cmds:
       - python -m getgit {{.CLI_ARGS}}
 
+  startup-repo:
+    desc: 'Scrape USERNAME within a single repo, no caps (one repo is small enough). Usage: task startup-repo -- USERNAME --repo OWNER/NAME'
+    cmds:
+      - python -m getgit {{.CLI_ARGS}}
+
   test:
     desc: Run the pytest suite.
     cmds:
