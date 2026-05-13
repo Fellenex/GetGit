@@ -1,16 +1,8 @@
 """Tests for PullRequestProvider helpers and sparse-breakdown logic."""
 
+from _support.github import FakeGithubClient
+
 from getgit.github import PullRequestProvider
-
-
-class _FakeClient:
-    """Minimal stand-in for GithubClient — yields a pre-set list from paginate."""
-
-    def __init__(self, files: list[dict]):
-        self._files = files
-
-    def paginate(self, _url: str, _params: dict | None = None):
-        return iter(self._files)
 
 
 def test_file_extension_simple():
@@ -76,7 +68,7 @@ def test_ext_breakdown_omits_zero_entries():
         {"filename": "src/foo.py", "additions": 10, "deletions": 0},
         {"filename": "src/bar.py", "additions": 5, "deletions": 2},
     ]
-    fetcher = PullRequestProvider(_FakeClient(files))
+    fetcher = PullRequestProvider(FakeGithubClient(default_items=files))
 
     additions, deletions = fetcher._ext_breakdown("o/r", 1)
 
@@ -87,7 +79,7 @@ def test_ext_breakdown_omits_zero_entries():
 def test_ext_breakdown_no_changes_yields_empty_dicts():
     """A PR with only zero-line file entries returns two empty dicts (not `{ext: 0}`)."""
     files = [{"filename": "noop.txt", "additions": 0, "deletions": 0}]
-    fetcher = PullRequestProvider(_FakeClient(files))
+    fetcher = PullRequestProvider(FakeGithubClient(default_items=files))
 
     additions, deletions = fetcher._ext_breakdown("o/r", 1)
 

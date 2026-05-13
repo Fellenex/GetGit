@@ -2,8 +2,13 @@
 
 from pathlib import Path
 
+from _support.github import (
+    RecordingCommitProvider,
+    RecordingPullRequestProvider,
+    RecordingRepoProvider,
+)
+
 from getgit.application import AppSettings
-from getgit.github import PullRequestFetchResult
 from getgit.services import GithubService
 
 
@@ -21,49 +26,11 @@ def _settings(**overrides) -> AppSettings:
     return AppSettings(**base)
 
 
-class _RecordingRepoProvider:
-    """Records the args of the last `list_repos` call."""
-
-    def __init__(self):
-        self.last_call: dict | None = None
-
-    def list_repos(self, username: str, is_self: bool) -> list[dict]:
-        self.last_call = {"username": username, "is_self": is_self}
-        return [{"full_name": "o/r"}]
-
-
-class _RecordingPullRequestProvider:
-    def __init__(self):
-        self.last_call: dict | None = None
-
-    def fetch(self, username, limit, fetch_extensions):
-        self.last_call = {
-            "username": username,
-            "limit": limit,
-            "fetch_extensions": fetch_extensions,
-        }
-        return PullRequestFetchResult()
-
-
-class _RecordingCommitProvider:
-    def __init__(self):
-        self.last_call: dict | None = None
-
-    def fetch(self, repos, username, limit, pr_index):
-        self.last_call = {
-            "repos": repos,
-            "username": username,
-            "limit": limit,
-            "pr_index": pr_index,
-        }
-        return []
-
-
 def _make_service(**setting_overrides):
     repo, prs, commits = (
-        _RecordingRepoProvider(),
-        _RecordingPullRequestProvider(),
-        _RecordingCommitProvider(),
+        RecordingRepoProvider(),
+        RecordingPullRequestProvider(),
+        RecordingCommitProvider(),
     )
     service = GithubService(
         repo_provider=repo,

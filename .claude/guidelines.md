@@ -80,6 +80,7 @@ Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB o
 - **Module-level helpers belong inside the class they support.** If a function or constant only exists to serve one class in the same file, it lives on that class as a `_`-prefixed method (`@staticmethod`/`@classmethod` when it doesn't need `self`) or class-level constant. Keeps the public surface = the class.
 - **One class per file.** A file may contain module-level helper functions or constants that support its class, but never two classes.
 - **Filenames mirror their class name** in `snake_case`. `AppSettings` lives in `app_settings.py`; `JSONModel` in `json_model.py`. The matching is mechanical so nothing is hidden.
+- **Reusable test support classes** (fakes, recording test doubles, fixtures) live under `tests/_support/<domain>/` — e.g. `tests/_support/github/fake_github_client.py`. One class per file, same naming convention. Test modules import via `from _support.github import FakeGithubClient`. `tests/` is on `pytest`'s `pythonpath` so `_support` is a top-level package; this is the *only* `__init__.py`-having tree under `tests/`.
 - **Source is organized by domain**, not by technical layer. Each domain is a folder under `src/getgit/` with an `__init__.py` that re-exports the public types. Current domains: `authentication/`, `cli/`, `fetchers/`, `github_api/`, `models/`. Single-file utilities (e.g. `storage.py`) stay top-level until they grow a class to organize.
 - Prefer editing existing files over creating new ones.
 
