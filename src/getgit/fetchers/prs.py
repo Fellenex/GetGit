@@ -58,14 +58,12 @@ def fetch_pull_requests(
         detail_resp.raise_for_status()
         pr = detail_resp.json()
 
-        merged = bool(pr.get("merged_at"))
         results.append(
             PullRequest(
                 number=number,
                 repo=repo_full,
                 title=pr["title"],
-                state="merged" if merged else "closed",
-                merged=merged,
+                merged=bool(pr.get("merged_at")),
                 created_at=_parse_dt(pr["created_at"]),
                 closed_at=_parse_dt(pr.get("closed_at")),
                 additions=pr.get("additions", 0),
@@ -77,3 +75,21 @@ def fetch_pull_requests(
             )
         )
     return results
+
+
+def build_commit_pr_index(
+    client: httpx.Client, prs: list[PullRequest]
+) -> dict[tuple[str, str], int]:
+    """Map `(repo, commit_sha)` → PR number for every commit reachable from a PR.
+
+    Costs one paginated call per PR (typically one page), giving us the
+    commit→PR linkage in O(PRs) rather than the O(commits) cost of
+    `/repos/.../commits/{sha}/pulls`.
+    """
+    index: dict[tuple[str, str], int] = {}
+    for pr in prs:
+        for commit in paginate(
+            client, f"/repos/{pr.repo}/pulls/{pr.number}/commits"
+        ):
+            index[(pr.repo, commit["sha"])] = pr.number
+    return index

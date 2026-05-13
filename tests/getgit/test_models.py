@@ -17,6 +17,7 @@ def test_commit_to_jsonable_serializes_datetime_as_iso():
         "repo": "o/r",
         "authored_at": "2026-05-12T10:30:00+00:00",
         "message": "hi",
+        "pull_request_number": None,
     }
 
 
@@ -32,7 +33,6 @@ def test_authorship_report_serializes_nested_models():
                 number=1,
                 repo="o/r",
                 title="t",
-                state="merged",
                 merged=True,
                 created_at=ts,
                 closed_at=ts,

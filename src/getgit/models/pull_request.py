@@ -10,16 +10,16 @@ from .base import JSONModel
 class PullRequest(JSONModel):
     """A closed (merged or unmerged) pull request authored by the user.
 
-    `state` is `"merged"` if the PR has a `merged_at`, otherwise
-    `"closed"`. `comments` sums issue comments and review comments.
-    `jira_codes` is the deduped list extracted from title, body, and
-    branch name via the regex `[A-Z]{2,10}-\\d+`.
+    `merged` distinguishes the two terminal states (we only query
+    `is:closed`, so an unmerged PR here means closed-without-merge).
+    `comments` sums issue comments and review comments. `jira_codes` is
+    the deduped list extracted from title, body, and branch name via
+    the regex `[A-Z]{2,10}-\\d+`.
     """
 
     number: int
     repo: str
     title: str
-    state: str
     merged: bool
     created_at: datetime
     closed_at: datetime | None

@@ -13,6 +13,7 @@ def fetch_commits(
     repos: list[dict],
     username: str,
     limit: int | None = None,
+    pr_index: dict[tuple[str, str], int] | None = None,
 ) -> list[Commit]:
     """Walk every repo and collect commits authored by `username`.
 
@@ -22,7 +23,13 @@ def fetch_commits(
 
     `limit` caps the number of commits returned — useful for cheap test
     runs so we don't burn rate limit. `None` means no cap.
+
+    `pr_index` (built by `prs.build_commit_pr_index`) maps
+    `(repo, sha)` → PR number, so each commit gets its merging PR
+    attached. Commits not in the index (direct pushes) keep
+    `pull_request_number=None`.
     """
+    pr_index = pr_index or {}
     commits: list[Commit] = []
     for repo in repos:
         if limit is not None and len(commits) >= limit:
@@ -39,6 +46,7 @@ def fetch_commits(
                         repo=full_name,
                         authored_at=datetime.fromisoformat(ca["date"].replace("Z", "+00:00")),
                         message=raw["commit"]["message"],
+                        pull_request_number=pr_index.get((full_name, raw["sha"])),
                     )
                 )
                 if limit is not None and len(commits) >= limit:

@@ -166,6 +166,16 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** `unittest` (stdlib, no install needed); flat `tests/` dir without subdirs; rely on `pip install -e .` instead of `pythonpath`.
 **Why:** pytest is the de facto standard — concise asserts, fixtures, and a vast plugin ecosystem (will matter when we want HTTP mocking via `respx` or `pytest-httpx`). Mirroring the package keeps "where do I add a test for this file?" trivial. `importlib` import mode plus no `__init__.py` files in `tests/` is the only combination that avoids the namespace collision with the real `getgit` package; `pythonpath` keeps tests runnable without an editable install.
 
+### 2026-05-12 — Commit→PR linkage built from PR-side, not commit-side
+**Decision:** the commit→PR mapping is built by walking `/repos/.../pulls/{n}/commits` for each PR we already fetched, then attaching `pull_request_number` to each commit during materialization. Done in `prs.build_commit_pr_index` and consumed by `fetch_commits` via an optional `pr_index` arg.
+**Alternatives:** call `/repos/.../commits/{sha}/pulls` for every commit (the obvious per-commit lookup); use the GraphQL `Commit.associatedPullRequests` field per commit.
+**Why:** per-commit lookups are O(commits), which dominates O(PRs) for any active user — a heavy contributor with 10k commits and 200 PRs would pay 50× more API quota for the per-commit path. The PR-side approach reuses calls we'd be paying for anyway and degrades gracefully (commits not in any PR keep `pull_request_number=None`, which is the truthful answer for direct pushes).
+
+### 2026-05-12 — Drop `PullRequest.state`; keep only `merged`
+**Decision:** removed the `state: str` field. `merged: bool` is the single source of truth.
+**Alternatives:** keep both for "self-documenting JSON"; replace with an enum.
+**Why:** the search query is hardcoded to `is:closed`, so every PR returned is in one of two terminal states fully determined by `merged_at`. Two fields encoding the same bit invites them to drift. Consumers needing a string label can derive `"merged" if merged else "closed"` trivially.
+
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
 **Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.
