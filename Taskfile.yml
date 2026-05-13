@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  startup-tiny:
+    desc: Scrape Fellenex with small caps for cheap test runs (50 commits, 50 PRs).
+    cmds:
+      - python -m getgit Fellenex --max-commits 50 --max-prs 50
+
+  startup:
+    desc: Full scrape of Fellenex — no caps.
+    cmds:
+      - python -m getgit Fellenex
+
+  test:
+    desc: Run the pytest suite.
+    cmds:
+      - pytest

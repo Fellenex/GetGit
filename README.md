@@ -46,6 +46,16 @@ pytest
 
 Tests live under `tests/getgit/`, mirroring the package layout.
 
+## Tasks
+
+If you have [Task](https://taskfile.dev) installed:
+
+| Task              | What it does                                              |
+| ----------------- | --------------------------------------------------------- |
+| `task startup-tiny` | Scrape `Fellenex` with `--max-commits 50 --max-prs 50` (cheap test run). |
+| `task startup`      | Full scrape of `Fellenex` with no caps.                 |
+| `task test`         | Run the pytest suite.                                   |
+
 ## Architecture
 
 See [.claude/guidelines.md](.claude/guidelines.md) for the design contract that shapes this project.
