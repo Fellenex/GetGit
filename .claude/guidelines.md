@@ -146,6 +146,11 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** flat layout (`getgit/` at repo root); package literally named `src` (no `pyproject.toml`); `requirements.txt` + `PYTHONPATH=src` runtime hack.
 **Why:** the src-layout prevents accidental imports from the working directory (a common cause of "tests pass locally but fail in CI" bugs) and forces the package to be installed before it's importable — which mirrors how phase 2 (FastAPI in Docker) will consume it. `pyproject.toml` becomes the single source of truth for dependencies, replacing `requirements.txt` for the package itself.
 
+### 2026-05-12 — `models/` package with `JSONModel` mixin
+**Decision:** models live under `src/getgit/models/` — one file per model (`commit.py`, `pull_request.py`, `report.py`) plus a `base.py` that defines a `JSONModel` mixin with a `to_jsonable()` method. Models are `@dataclass` classes that inherit from `JSONModel`. The package `__init__.py` re-exports the public surface so callers still write `from .models import Commit`.
+**Alternatives:** keep a single `models.py` with a free-function `to_jsonable`; make `JSONModel` itself a dataclass parent; reach for Pydantic for runtime validation.
+**Why:** as the model count grows (issues, reviews, contributions in later phases), a flat file becomes unwieldy. A mixin keeps serialization logic next to the contract it serializes — `report.to_jsonable()` reads better than `to_jsonable(report)` and removes the temptation to bypass it. `JSONModel` is *not* a dataclass on purpose: mixing dataclass inheritance forces field-ordering rules that subclasses would have to think about. Pydantic stays out for now — dataclasses are stdlib and we don't yet need runtime validation; we'll revisit when the FastAPI layer lands in phase 2.
+
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
 **Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.
