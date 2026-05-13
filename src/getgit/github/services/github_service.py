@@ -1,5 +1,7 @@
 """High-level facade aggregating per-resource GitHub providers."""
 
+from datetime import datetime
+
 from ...application import AppSettings
 from ..data import Commit, PullRequestFetchResult
 from ..providers import CommitProvider, PullRequestProvider, RepoProvider
@@ -34,25 +36,38 @@ class GithubService:
             self._settings.username, is_self=is_self
         )
 
-    def fetch_pull_requests(self) -> PullRequestFetchResult:
-        """Collect authored + participated PRs, reviews, and a commit→PR index."""
+    def fetch_pull_requests(
+        self, since: datetime | None = None
+    ) -> PullRequestFetchResult:
+        """Collect authored + participated PRs, reviews, and a commit→PR index.
+
+        `since`, when set, scopes each search to PRs updated on/after
+        that timestamp — passed through to `PullRequestProvider.fetch`.
+        """
         return self._pull_request_provider.fetch(
             self._settings.username,
             limit=self._settings.max_prs,
             fetch_extensions=self._settings.fetch_extensions,
+            since=since,
         )
 
     def fetch_commits(
-        self, repos: list[dict], pr_index: dict[tuple[str, str], int]
+        self,
+        repos: list[dict],
+        pr_index: dict[tuple[str, str], int],
+        since_per_repo: dict[str, datetime] | None = None,
     ) -> list[Commit]:
         """Walk `repos` and collect commits authored by the target user.
 
         `pr_index` (typically `PullRequestFetchResult.commit_pr_index`)
         attaches the merging PR number to each commit it covers.
+        `since_per_repo`, when supplied, restricts each repo's commit
+        listing to commits authored on/after the given timestamp.
         """
         return self._commit_provider.fetch(
             repos,
             self._settings.username,
             limit=self._settings.max_commits,
             pr_index=pr_index,
+            since_per_repo=since_per_repo,
         )

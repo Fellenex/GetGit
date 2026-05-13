@@ -27,7 +27,7 @@ def test_dict_of_scalars_renders_as_key_value_pairs(tmp_path: Path):
     rows = [
         PullRequest(
             number=1, repo="o/r", title="t", merged=True,
-            created_at=_ts(), closed_at=_ts(),
+            created_at=_ts(), closed_at=_ts(), updated_at=_ts(),
             additions={".py": 10, ".yml": 5}, deletions={},
             comments=0, comments_by_author=0, jira_codes=[],
         )
@@ -44,7 +44,7 @@ def test_list_renders_as_semicolon_joined(tmp_path: Path):
     rows = [
         PullRequest(
             number=1, repo="o/r", title="t", merged=True,
-            created_at=_ts(), closed_at=_ts(),
+            created_at=_ts(), closed_at=_ts(), updated_at=_ts(),
             additions={}, deletions={}, comments=0, comments_by_author=0,
             jira_codes=["PTR-99", "WD-1", "YWFB-9"],
         )

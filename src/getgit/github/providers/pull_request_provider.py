@@ -23,6 +23,7 @@ class PullRequestProvider:
         username: str,
         limit: int | None = None,
         fetch_extensions: bool = True,
+        since: datetime | None = None,
     ) -> PullRequestFetchResult:
         """Collect every closed PR the user authored or participated in.
 
@@ -33,8 +34,10 @@ class PullRequestProvider:
         streams for the user's comment count, and the PR's commit list
         for the `commit_pr_index`.
 
-        `limit` caps each set independently. On rate limit, attaches
-        the partially-built `PullRequestFetchResult` to the raised
+        `since` constrains every search query with `updated:>=<since>`
+        so resumed runs skip PRs that haven't changed. `limit` caps
+        each set independently. On rate limit, attaches the
+        partially-built `PullRequestFetchResult` to the raised
         `RateLimitExceededError` so the orchestrator can still emit a
         partial report.
         """
@@ -42,7 +45,8 @@ class PullRequestProvider:
         try:
             authored_keys: set[tuple[str, int]] = set()
             for issue in self._client.paginate(
-                "/search/issues", {"q": f"type:pr author:{username} is:closed"}
+                "/search/issues",
+                {"q": self._build_query(f"author:{username}", since)},
             ):
                 if limit is not None and len(out.authored) >= limit:
                     break
@@ -58,8 +62,8 @@ class PullRequestProvider:
                 self._index_pr_commits(repo_full, number, out.commit_pr_index)
 
             participated_keys = (
-                self._search_keys(f"type:pr commenter:{username} is:closed")
-                | self._search_keys(f"type:pr reviewed-by:{username} is:closed")
+                self._search_keys(self._build_query(f"commenter:{username}", since))
+                | self._search_keys(self._build_query(f"reviewed-by:{username}", since))
             ) - authored_keys
 
             for repo_full, number in sorted(participated_keys):
@@ -76,6 +80,14 @@ class PullRequestProvider:
         except RateLimitExceededError as e:
             e.partial = out
             raise
+
+    @staticmethod
+    def _build_query(scope: str, since: datetime | None) -> str:
+        """Compose a /search/issues `q=` value, appending `updated:>=` when `since` is set."""
+        parts = ["type:pr", scope, "is:closed"]
+        if since is not None:
+            parts.append(f"updated:>={since.isoformat()}")
+        return " ".join(parts)
 
     def _search_keys(self, query: str) -> set[tuple[str, int]]:
         """Run a /search/issues query and collect `(repo, number)` tuples."""
@@ -118,6 +130,7 @@ class PullRequestProvider:
             merged=bool(pr.get("merged_at")),
             created_at=self._parse_dt(pr["created_at"]),
             closed_at=self._parse_dt(pr.get("closed_at")),
+            updated_at=self._parse_dt(pr["updated_at"]),
             additions=additions,
             deletions=deletions,
             comments=pr.get("comments", 0) + pr.get("review_comments", 0),

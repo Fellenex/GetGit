@@ -15,6 +15,7 @@ def test_to_jsonable_emits_dict_diff_stats_and_jira_codes():
         merged=True,
         created_at=ts,
         closed_at=ts,
+        updated_at=ts,
         additions={".py": 10, "Dockerfile": 3},
         deletions={".py": 2},
         comments=4,
@@ -29,3 +30,4 @@ def test_to_jsonable_emits_dict_diff_stats_and_jira_codes():
     assert out["jira_codes"] == ["WD-1"]
     assert out["comments_by_author"] == 1
     assert out["merged"] is True
+    assert out["updated_at"] == "2026-05-12T00:00:00+00:00"

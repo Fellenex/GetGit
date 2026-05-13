@@ -61,7 +61,7 @@ def test_fetch_pull_requests_threads_settings_through():
     service.fetch_pull_requests()
 
     prs.fetch.assert_called_once_with(
-        "alice", limit=10, fetch_extensions=False
+        "alice", limit=10, fetch_extensions=False, since=None
     )
 
 
@@ -74,5 +74,5 @@ def test_fetch_commits_passes_repos_and_pr_index():
     service.fetch_commits(repos=repos, pr_index=pr_index)
 
     commits.fetch.assert_called_once_with(
-        repos, "alice", limit=5, pr_index=pr_index
+        repos, "alice", limit=5, pr_index=pr_index, since_per_repo=None
     )

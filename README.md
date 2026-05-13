@@ -174,6 +174,25 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 
 **On 403:** the client locks itself on the first `403`, aborts the scrape, and **writes a partial report from whatever data was already collected** — exit code `2` (vs. `0` for full success). Each provider attaches its in-progress accumulator to the raised exception so nothing collected is wasted. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
 
+## Resumable runs (checkpoint)
+
+Each user has a checkpoint file at `output/<username>/state.json` recording how far the previous run got. On the next run, GetGit:
+
+- Sends `updated:>=<watermark>` on every PR search, skipping PRs that haven't changed.
+- Sends `since=<watermark>` to `/repos/{repo}/commits`, skipping commits already collected per repo.
+- Always re-lists repos (cheap; usually one page).
+
+Watermark behavior:
+
+- **Complete run** → watermarks advance to the newest data collected.
+- **Partial run (rate-limited)** → watermarks do *not* advance. The next run re-fetches the same window so nothing falls into a gap between the old watermark and the oldest item the partial managed to collect.
+
+Each run writes its own `output/<username>/<timestamp>/` subdirectory containing only the delta (the data fetched in *that* run). To get the complete picture across runs, concatenate per-collection files across the timestamp dirs — e.g.
+
+```bash
+jq -s 'add' output/Fellenex/*/commits.json > all-commits.json
+```
+
 ## Tests
 
 ```bash

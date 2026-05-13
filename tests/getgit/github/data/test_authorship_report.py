@@ -20,6 +20,7 @@ def test_serializes_nested_collections_recursively():
                 merged=True,
                 created_at=ts,
                 closed_at=ts,
+                updated_at=ts,
                 additions={".py": 10},
                 deletions={".py": 2},
                 comments=3,

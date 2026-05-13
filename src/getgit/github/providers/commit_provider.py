@@ -21,6 +21,7 @@ class CommitProvider:
         username: str,
         limit: int | None = None,
         pr_index: dict[tuple[str, str], int] | None = None,
+        since_per_repo: dict[str, datetime] | None = None,
     ) -> list[Commit]:
         """Collect commits authored by `username` across `repos`.
 
@@ -29,22 +30,29 @@ class CommitProvider:
         skipped; repos that 404 (deleted or now-private) are also
         skipped.
 
-        `limit` caps the number of commits returned. `pr_index` (built
-        by `PullRequestProvider.fetch`) maps `(repo, sha)` → PR number;
-        commits not in the index keep `pull_request_number=None`. On
-        rate limit, attaches the partial commit list already collected
-        to the raised `RateLimitExceededError`.
+        `since_per_repo` maps `owner/name` → datetime; when present for
+        a repo, the call adds `since=<...>` to skip commits already
+        collected in a previous run. `limit` caps the number of commits
+        returned. `pr_index` (built by `PullRequestProvider.fetch`) maps
+        `(repo, sha)` → PR number; commits not in the index keep
+        `pull_request_number=None`. On rate limit, attaches the partial
+        commit list already collected to the raised
+        `RateLimitExceededError`.
         """
         pr_index = pr_index or {}
+        since_per_repo = since_per_repo or {}
         commits: list[Commit] = []
         try:
             for repo in repos:
                 if limit is not None and len(commits) >= limit:
                     break
                 full_name = repo["full_name"]
+                params: dict[str, str] = {"author": username}
+                if full_name in since_per_repo:
+                    params["since"] = since_per_repo[full_name].isoformat()
                 try:
                     for raw in self._client.paginate(
-                        f"/repos/{full_name}/commits", {"author": username}
+                        f"/repos/{full_name}/commits", params
                     ):
                         commits.append(self._build_commit(raw, full_name, pr_index))
                         if limit is not None and len(commits) >= limit:

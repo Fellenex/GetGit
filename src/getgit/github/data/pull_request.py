@@ -24,6 +24,8 @@ class PullRequest(JSONModel):
     `jira_codes` is the deduped, sorted list of full ticket codes
     extracted from title, body, and branch name via the regex
     `[A-Z]{2,10}-\\d+` (e.g. `["WD-1234", "WD-5678", "YWFB-99"]`).
+    `updated_at` is GitHub's `updated_at` for this PR — used by the
+    checkpoint to drive the next run's `updated:>=` search filter.
     """
 
     number: int
@@ -32,6 +34,7 @@ class PullRequest(JSONModel):
     merged: bool
     created_at: datetime
     closed_at: datetime | None
+    updated_at: datetime
     additions: dict[str, int]
     deletions: dict[str, int]
     comments: int
