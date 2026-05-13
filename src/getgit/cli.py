@@ -26,6 +26,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="getgit", description="Scrape GitHub authorship data.")
     parser.add_argument("username", help="GitHub username to scrape.")
     parser.add_argument("--out", default="output", help="Output directory (default: ./output)")
+    parser.add_argument(
+        "--max-commits",
+        type=int,
+        default=None,
+        help="Cap commits collected (test/dev knob to limit API calls).",
+    )
+    parser.add_argument(
+        "--max-prs",
+        type=int,
+        default=None,
+        help="Cap pull requests collected (test/dev knob to limit API calls).",
+    )
     args = parser.parse_args(argv)
 
     auth = PersonalTokenAuth()
@@ -38,10 +50,10 @@ def main(argv: list[str] | None = None) -> int:
         repos = list_repos(client, args.username, is_self=is_self)
         print(f"Found {len(repos)} repos", file=sys.stderr)
 
-        commits = fetch_commits(client, repos, args.username)
+        commits = fetch_commits(client, repos, args.username, limit=args.max_commits)
         print(f"Found {len(commits)} commits", file=sys.stderr)
 
-        prs = fetch_pull_requests(client, args.username)
+        prs = fetch_pull_requests(client, args.username, limit=args.max_prs)
         print(f"Found {len(prs)} closed PRs", file=sys.stderr)
 
     report = AuthorshipReport(

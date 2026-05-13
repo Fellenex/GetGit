@@ -151,6 +151,16 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** keep a single `models.py` with a free-function `to_jsonable`; make `JSONModel` itself a dataclass parent; reach for Pydantic for runtime validation.
 **Why:** as the model count grows (issues, reviews, contributions in later phases), a flat file becomes unwieldy. A mixin keeps serialization logic next to the contract it serializes — `report.to_jsonable()` reads better than `to_jsonable(report)` and removes the temptation to bypass it. `JSONModel` is *not* a dataclass on purpose: mixing dataclass inheritance forces field-ordering rules that subclasses would have to think about. Pydantic stays out for now — dataclasses are stdlib and we don't yet need runtime validation; we'll revisit when the FastAPI layer lands in phase 2.
 
+### 2026-05-12 — `--max-commits` / `--max-prs` for test runs
+**Decision:** each fetcher accepts an optional `limit: int | None` parameter and stops iterating once reached. The CLI exposes `--max-commits` and `--max-prs`. Default is `None` (no cap).
+**Alternatives:** a single global `--max` knob; sampling (random N from full result); environment variable instead of CLI flags.
+**Why:** per-fetcher limits map directly to the two API surfaces with different cost profiles (per-repo commits vs. search-API PRs). Stopping at the fetcher level avoids paying for paginated calls we'd then discard. Defaulting to `None` keeps production behavior unchanged.
+
+### 2026-05-12 — `_extract_jira_codes` uses a set
+**Decision:** JIRA-code extraction uses a `set` internally and returns `sorted(found)`.
+**Alternatives:** keep the order-preserving list-with-`in`-check; `dict.fromkeys` for ordered dedupe; return the set directly.
+**Why:** dedupe is O(1) per insert (vs. O(n) for the list scan), and a sorted output makes the JSON deterministic across runs — diffing two reports stays meaningful. Returning a list (not a set) preserves JSON-serializability without special-casing in `JSONModel`.
+
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
 **Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.

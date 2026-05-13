@@ -13,15 +13,16 @@ JIRA_RE = re.compile(r"\b[A-Z]{2,10}-\d+\b")
 
 
 def _extract_jira_codes(*texts: str | None) -> list[str]:
-    """Pull JIRA codes from any number of text blobs, preserving first-seen order and deduping."""
-    seen: list[str] = []
+    """Pull JIRA codes from any number of text blobs.
+
+    Uses a set internally so deduping is automatic; returns a sorted list
+    so the JSON output is deterministic across runs.
+    """
+    found: set[str] = set()
     for text in texts:
-        if not text:
-            continue
-        for match in JIRA_RE.findall(text):
-            if match not in seen:
-                seen.append(match)
-    return seen
+        if text:
+            found.update(JIRA_RE.findall(text))
+    return sorted(found)
 
 
 def _parse_dt(s: str | None) -> datetime | None:
@@ -31,17 +32,24 @@ def _parse_dt(s: str | None) -> datetime | None:
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
-def fetch_pull_requests(client: httpx.Client, username: str) -> list[PullRequest]:
+def fetch_pull_requests(
+    client: httpx.Client, username: str, limit: int | None = None
+) -> list[PullRequest]:
     """Find every closed PR authored by `username` and enrich each with detail fields.
 
     Search returns lightweight issue records; a follow-up
     `/repos/{owner}/{repo}/pulls/{n}` fetch is required for `additions`,
     `deletions`, `review_comments`, and `merged_at`. JIRA codes are
     extracted from the PR title, body, and head branch name.
+
+    `limit` caps the number of PRs returned — useful for cheap test runs
+    so we don't burn rate limit. `None` means no cap.
     """
     query = f"type:pr author:{username} is:closed"
     results: list[PullRequest] = []
     for issue in paginate(client, "/search/issues", {"q": query}):
+        if limit is not None and len(results) >= limit:
+            break
         repo_url = issue["repository_url"]
         repo_full = "/".join(repo_url.rsplit("/", 2)[-2:])
         number = issue["number"]

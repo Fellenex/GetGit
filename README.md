@@ -26,10 +26,12 @@ Phase 2 (planned): FastAPI web wrapper with GitHub OAuth login, allowing any use
 ```bash
 pip install -e .
 export GITHUB_TOKEN=ghp_your_token_here    # PowerShell: $env:GITHUB_TOKEN="ghp_..."
-python -m getgit <username> [--out output]
+python -m getgit <username> [--out output] [--max-commits N] [--max-prs N]
 # or, after install:
-getgit <username> [--out output]
+getgit <username> [--out output] [--max-commits N] [--max-prs N]
 ```
+
+Use `--max-commits` and `--max-prs` to cap data volume for cheap test runs (e.g. `getgit Fellenex --max-commits 5 --max-prs 5`).
 
 When `<username>` matches the authenticated user, both public and private repos are scanned. Otherwise only public data is returned.
 
