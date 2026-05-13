@@ -15,6 +15,7 @@ from ..exporting import write_report
 from ..fetchers import CommitFetcher, PullRequestFetcher, RepoFetcher
 from ..github_api import GithubClient
 from ..models import AuthorshipReport
+from ..services import GithubService
 from .data import AppSettings
 
 
@@ -41,14 +42,17 @@ def run(settings: AppSettings) -> int:
             file=sys.stderr,
         )
 
-        repos = RepoFetcher(client).list_repos(settings.username, is_self=is_self)
+        github = GithubService(
+            repo_fetcher=RepoFetcher(client),
+            pull_request_fetcher=PullRequestFetcher(client),
+            commit_fetcher=CommitFetcher(client),
+            settings=settings,
+        )
+
+        repos = github.fetch_repositories(is_self=is_self)
         print(f"Found {len(repos)} repos", file=sys.stderr)
 
-        pr_result = PullRequestFetcher(client).fetch(
-            settings.username,
-            limit=settings.max_prs,
-            fetch_extensions=settings.fetch_extensions,
-        )
+        pr_result = github.fetch_pull_requests()
         print(
             f"Found {len(pr_result.authored)} authored PRs, "
             f"{len(pr_result.participated)} participated PRs, "
@@ -57,12 +61,7 @@ def run(settings: AppSettings) -> int:
             file=sys.stderr,
         )
 
-        commits = CommitFetcher(client).fetch(
-            repos,
-            settings.username,
-            limit=settings.max_commits,
-            pr_index=pr_result.commit_pr_index,
-        )
+        commits = github.fetch_commits(repos=repos, pr_index=pr_result.commit_pr_index)
         print(f"Found {len(commits)} commits", file=sys.stderr)
 
     report = AuthorshipReport(
