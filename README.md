@@ -52,56 +52,63 @@ When `<username>` matches the authenticated user, both public and private repos 
 
 ## Output
 
-Written to `output/`:
+Written to `output/` — one JSON and one CSV per top-level collection:
 
-- `<username>.json` — full structured report (canonical source).
-- `<username>.commits.csv`
-- `<username>.authored_pull_requests.csv`
-- `<username>.participated_pull_requests.csv`
-- `<username>.reviews.csv`
+- `<username>.commits.json` / `.csv`
+- `<username>.authored_pull_requests.json` / `.csv`
+- `<username>.participated_pull_requests.json` / `.csv`
+- `<username>.reviews.json` / `.csv`
 
-### JSON shape
+Each JSON file is a top-level array of homogeneous rows. There is intentionally no unified `<username>.json` aggregating everything; consumers wanting that shape can join the per-collection files themselves.
 
+### JSON row shapes
+
+Each `<username>.<collection>.json` file is a JSON array of these row shapes.
+
+**`commits.json`**
 ```jsonc
-{
-  "username": "Fellenex",
-  "generated_at": "2026-05-12T10:30:00+00:00",
-  "commits": [
-    {
-      "sha": "abc123…",
-      "repo": "owner/repo",
-      "authored_at": "2026-05-10T14:22:00+00:00",
-      "message": "Fix typo in README",
-      "pull_request_number": 42        // null for direct pushes
-    }
-  ],
-  "authored_pull_requests": [
-    {
-      "number": 42,
-      "repo": "owner/repo",
-      "title": "WD-1234: Add feature X",
-      "merged": true,                  // false = closed-without-merge
-      "created_at": "2026-05-01T...",
-      "closed_at":  "2026-05-03T...",  // null only if still open (we filter is:closed, so always set)
-      "additions": {".py": 120, ".yml": 8, "": 3},   // "" = files with no extension
-      "deletions": {".py": 14},                       // "*" appears instead when --no-extension-breakdown
-      "comments": 7,                                  // total across all authors
-      "comments_by_author": 2,                        // subset by the target user
-      "jira_codes": {"WD": ["WD-1234", "WD-5678"]}    // keyed by project prefix; lists are sorted & deduped
-    }
-  ],
-  "participated_pull_requests": [ /* same shape; user commented/reviewed but didn't author */ ],
-  "reviews": [
-    {
-      "pr_repo": "owner/repo",
-      "pr_number": 99,
-      "index": 1,                       // 1-based ordinal of this user's reviews on this PR
-      "state": "APPROVED",              // or CHANGES_REQUESTED / COMMENTED / DISMISSED
-      "submitted_at": "2026-05-04T...",
-      "body": "lgtm"
-    }
-  ]
-}
+[
+  {
+    "sha": "abc123…",
+    "repo": "owner/repo",
+    "authored_at": "2026-05-10T14:22:00+00:00",
+    "message": "Fix typo in README",
+    "pull_request_number": 42        // null for direct pushes
+  }
+]
+```
+
+**`authored_pull_requests.json`** (and `participated_pull_requests.json` — same shape)
+```jsonc
+[
+  {
+    "number": 42,
+    "repo": "owner/repo",
+    "title": "WD-1234: Add feature X",
+    "merged": true,                  // false = closed-without-merge
+    "created_at": "2026-05-01T...",
+    "closed_at":  "2026-05-03T...",  // null only if still open (we filter is:closed, so always set)
+    "additions": {".py": 120, ".yml": 8, "Dockerfile": 3},  // extensionless files key on basename
+    "deletions": {".py": 14},                                // "*" appears instead when --no-extension-breakdown
+    "comments": 7,                                           // total across all authors
+    "comments_by_author": 2,                                 // subset by the target user
+    "jira_codes": {"WD": ["WD-1234", "WD-5678"]}             // keyed by project prefix; lists are sorted & deduped
+  }
+]
+```
+
+**`reviews.json`**
+```jsonc
+[
+  {
+    "pr_repo": "owner/repo",
+    "pr_number": 99,
+    "index": 1,                       // 1-based ordinal of this user's reviews on this PR
+    "state": "APPROVED",              // or CHANGES_REQUESTED / COMMENTED / DISMISSED
+    "submitted_at": "2026-05-04T...",
+    "body": "lgtm"
+  }
+]
 ```
 
 ### CSV columns

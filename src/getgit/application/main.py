@@ -11,10 +11,10 @@ import sys
 from datetime import datetime, timezone
 
 from ..authentication import GithubSettings
+from ..exporting import write_report
 from ..fetchers import CommitFetcher, PullRequestFetcher, RepoFetcher
 from ..github_api import GithubClient
 from ..models import AuthorshipReport
-from ..storage import write_report
 from .app_settings import AppSettings
 
 
