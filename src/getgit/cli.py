@@ -1,65 +1,51 @@
 """Command-line entry point for GetGit."""
 
-import argparse
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
 from dotenv import load_dotenv
 
+from .argument_parser import ArgumentParser
 from .auth import PersonalTokenAuth
 from .fetchers.commits import fetch_commits
 from .fetchers.prs import fetch_pull_requests
 from .fetchers.repos import list_repos, viewer_login
 from .models import AuthorshipReport
+from .settings import AppSettings
 from .storage import write_report
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Parse args, run all fetchers, and write the JSON report.
+    """Parse args, run all fetchers, and write the report.
 
-    `argv` is exposed for testing; production callers (the console
-    script, `python -m getgit`) leave it `None` so argparse reads
-    `sys.argv`. Returns a process exit code.
+    `argv` is exposed for testing; production callers leave it `None`.
+    Returns a process exit code.
     """
     load_dotenv()
-    parser = argparse.ArgumentParser(prog="getgit", description="Scrape GitHub authorship data.")
-    parser.add_argument("username", help="GitHub username to scrape.")
-    parser.add_argument("--out", default="output", help="Output directory (default: ./output)")
-    parser.add_argument(
-        "--max-commits",
-        type=int,
-        default=None,
-        help="Cap commits collected (test/dev knob to limit API calls).",
-    )
-    parser.add_argument(
-        "--max-prs",
-        type=int,
-        default=None,
-        help="Cap pull requests collected per set (test/dev knob).",
-    )
-    parser.add_argument(
-        "--no-extension-breakdown",
-        action="store_true",
-        help="Skip /pulls/{n}/files; store totals only under the '*' key.",
-    )
-    args = parser.parse_args(argv)
+    settings = ArgumentParser().parse(argv)
+    return _run(settings)
 
+
+def _run(settings: AppSettings) -> int:
+    """Execute the scrape using a fully-resolved `AppSettings`."""
     auth = PersonalTokenAuth()
     with auth.client() as client:
         viewer = viewer_login(client)
-        is_self = viewer.lower() == args.username.lower()
+        is_self = viewer.lower() == settings.username.lower()
 
-        print(f"Viewer: {viewer} | Target: {args.username} | Self: {is_self}", file=sys.stderr)
+        print(
+            f"Viewer: {viewer} | Target: {settings.username} | Self: {is_self}",
+            file=sys.stderr,
+        )
 
-        repos = list_repos(client, args.username, is_self=is_self)
+        repos = list_repos(client, settings.username, is_self=is_self)
         print(f"Found {len(repos)} repos", file=sys.stderr)
 
         pr_result = fetch_pull_requests(
             client,
-            args.username,
-            limit=args.max_prs,
-            fetch_extensions=not args.no_extension_breakdown,
+            settings.username,
+            limit=settings.max_prs,
+            fetch_extensions=settings.fetch_extensions,
         )
         print(
             f"Found {len(pr_result.authored)} authored PRs, "
@@ -72,21 +58,21 @@ def main(argv: list[str] | None = None) -> int:
         commits = fetch_commits(
             client,
             repos,
-            args.username,
-            limit=args.max_commits,
+            settings.username,
+            limit=settings.max_commits,
             pr_index=pr_result.commit_pr_index,
         )
         print(f"Found {len(commits)} commits", file=sys.stderr)
 
     report = AuthorshipReport(
-        username=args.username,
+        username=settings.username,
         generated_at=datetime.now(timezone.utc),
         commits=commits,
         authored_pull_requests=pr_result.authored,
         participated_pull_requests=pr_result.participated,
         reviews=pr_result.reviews,
     )
-    paths = write_report(report, Path(args.out))
+    paths = write_report(report, settings.out_dir)
     for label, p in paths.items():
         print(f"Wrote {label}: {p}")
     return 0

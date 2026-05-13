@@ -188,6 +188,21 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** drop the all-author total; only count for participated PRs and set authored to `0`; use GraphQL to get both counts in one call.
 **Why:** for authored PRs the author-self-comment count signals self-discussion; for participated PRs it's the entire reason the PR is in the report. Both numbers belong. GraphQL would consolidate calls but introduces a second API surface for marginal savings — revisit if rate limits become a real ceiling.
 
+### 2026-05-12 — `_file_extension` falls back to bare basename for extensionless files
+**Decision:** files without a suffix (`Dockerfile`, `Makefile`, `.gitignore`) bucket under their full basename instead of `""`.
+**Alternatives:** keep the `""` bucket; introduce a sentinel like `"<noext>"`; classify by content type.
+**Why:** the `""` bucket conflated meaningfully different filetypes (Dockerfiles vs. Makefiles vs. dotfiles), giving consumers a useless "lots of edits with no extension" cell. The bare basename is what a human would call the type and is unique enough for the per-extension breakdown to remain readable.
+
+### 2026-05-12 — Dedicated `ArgumentParser` class producing `AppSettings`
+**Decision:** CLI arg parsing lives in a class (`getgit.argument_parser.ArgumentParser`) that wraps `argparse.ArgumentParser` via composition and returns an `AppSettings` dataclass (`getgit.settings.AppSettings`). `cli.main` calls `ArgumentParser().parse(argv)` then hands the settings to `_run`.
+**Alternatives:** keep the inline argparse in `main`; subclass `argparse.ArgumentParser`; use Click/Typer; pass the raw `argparse.Namespace` directly.
+**Why:** decoupling parsing from orchestration means the same fetcher pipeline can be driven by a phase-2 HTTP form or a phase-3 JSON request body — only the producer of `AppSettings` changes. Composition (not subclassing) keeps the public surface tiny and avoids inheriting argparse internals. Click/Typer would be the right call if the CLI grew subcommands, but argparse is stdlib and currently sufficient.
+
+### 2026-05-12 — One file per `@dataclass`; mirrored test files
+**Decision:** every `@dataclass` lives in its own file. New homes: `getgit/settings.py` (`AppSettings`), `getgit/fetchers/pull_request_fetch_result.py` (`PullRequestFetchResult`). Tests follow the same one-file-per-source-file rule under `tests/getgit/...`.
+**Alternatives:** group related dataclasses in `models.py` / `results.py` files; rely on a flat test file per concern (e.g., `test_models.py`).
+**Why:** a 1:1 file mapping makes "where does this type live?" and "where do I add a test for this file?" mechanical questions with no judgment calls. Costs a few extra files but keeps imports unambiguous and diffs scoped — particularly important as the model count grows in phase 2/3.
+
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
 **Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.

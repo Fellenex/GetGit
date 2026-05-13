@@ -1,7 +1,6 @@
 """Pull-request fetcher: PRs (authored + participated), reviews, commit→PR index."""
 
 import re
-from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import PurePosixPath
 
@@ -9,25 +8,10 @@ import httpx
 
 from ..github_api import paginate
 from ..models import PullRequest, Review
+from .pull_request_fetch_result import PullRequestFetchResult
 
 JIRA_RE = re.compile(r"\b[A-Z]{2,10}-\d+\b")
 """Matches JIRA-style ticket codes (e.g. WD-6000, YWFB-300, PTR-8000)."""
-
-
-@dataclass
-class PullRequestFetchResult:
-    """Bundle of everything one PR-side scrape produces.
-
-    `authored` and `participated` partition the PRs the user touched.
-    `reviews` is every review the user submitted on either set.
-    `commit_pr_index` maps `(repo, commit_sha)` → PR number for any
-    commit reachable from any of these PRs.
-    """
-
-    authored: list[PullRequest] = field(default_factory=list)
-    participated: list[PullRequest] = field(default_factory=list)
-    reviews: list[Review] = field(default_factory=list)
-    commit_pr_index: dict[tuple[str, str], int] = field(default_factory=dict)
 
 
 def _extract_jira_codes(*texts: str | None) -> list[str]:
@@ -51,8 +35,15 @@ def _parse_dt(s: str | None) -> datetime | None:
 
 
 def _file_extension(filename: str) -> str:
-    """Return the file extension (with dot) or '' for files without one."""
-    return PurePosixPath(filename).suffix
+    """Return the file extension (with dot), or the bare basename if there is none.
+
+    Falls back to the full basename so extensionless files like
+    `Dockerfile`, `Makefile`, or `.gitignore` get a meaningful key
+    instead of all collapsing into a single `""` bucket in the
+    additions/deletions dict.
+    """
+    path = PurePosixPath(filename)
+    return path.suffix or path.name
 
 
 def _key_from_repo_url(repo_url: str) -> str:

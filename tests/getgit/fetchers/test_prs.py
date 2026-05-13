@@ -14,10 +14,15 @@ def test_file_extension_compound():
     assert _file_extension("archive.tar.gz") == ".gz"
 
 
-def test_file_extension_none():
-    """Files like `Dockerfile` have no extension and should return ''."""
-    assert _file_extension("Dockerfile") == ""
-    assert _file_extension("path/Makefile") == ""
+def test_file_extension_falls_back_to_basename_for_extensionless_files():
+    """Files like `Dockerfile` have no extension and should return the bare filename."""
+    assert _file_extension("Dockerfile") == "Dockerfile"
+    assert _file_extension("path/Makefile") == "Makefile"
+
+
+def test_file_extension_dotfiles_are_their_own_key():
+    """Hidden files like `.gitignore` should bucket under their bare name, not ''."""
+    assert _file_extension(".gitignore") == ".gitignore"
 
 
 def test_extract_jira_codes_dedupes_across_inputs():
