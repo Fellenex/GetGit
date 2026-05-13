@@ -139,3 +139,8 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Decision:** v0.2.0 ships no new fetchers or CLI surface. Scope: add tests (commits, PR JIRA extraction, pagination, `is_self` branching against a mocked API), handle rate-limit responses gracefully (`X-RateLimit-Remaining` / `Retry-After`), and verify the stranger path end-to-end against a real public account.
 **Alternatives:** bundle Docker into v0.2.0; add a `--public` flag to force the stranger path even when targeting yourself.
 **Why:** the stranger path already works structurally (see prior decision). The risk in opening it up is correctness and politeness toward GitHub's API, not missing code. Keeping Docker in v0.3.0 preserves the roadmap's separation of concerns: v0.2 = trust the data; v0.3 = trust the runtime.
+
+### 2026-05-12 — src-layout with `pyproject.toml`
+**Decision:** package lives at `src/getgit/`, declared in `pyproject.toml` via `tool.setuptools.packages.find` with `where = ["src"]`. Install with `pip install -e .`; run as `python -m getgit` or the `getgit` console script.
+**Alternatives:** flat layout (`getgit/` at repo root); package literally named `src` (no `pyproject.toml`); `requirements.txt` + `PYTHONPATH=src` runtime hack.
+**Why:** the src-layout prevents accidental imports from the working directory (a common cause of "tests pass locally but fail in CI" bugs) and forces the package to be installed before it's importable — which mirrors how phase 2 (FastAPI in Docker) will consume it. `pyproject.toml` becomes the single source of truth for dependencies, replacing `requirements.txt` for the package itself.

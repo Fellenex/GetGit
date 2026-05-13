@@ -12,7 +12,7 @@ from .storage import write_report
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="src", description="Scrape GitHub authorship data.")
+    parser = argparse.ArgumentParser(prog="getgit", description="Scrape GitHub authorship data.")
     parser.add_argument("username", help="GitHub username to scrape.")
     parser.add_argument("--out", default="output", help="Output directory (default: ./output)")
     args = parser.parse_args(argv)
