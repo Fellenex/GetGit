@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 from pathlib import PurePosixPath
 
+from ...infrastructure.dates import IsoDateParser
 from ..clients import GithubClient, RateLimitExceededError
 from ..data import PullRequest, PullRequestFetchResult, Review
 
@@ -128,14 +129,14 @@ class PullRequestProvider:
             repo=repo_full,
             title=pr["title"],
             merged=bool(pr.get("merged_at")),
-            created_at=self._parse_dt(pr["created_at"]),
-            closed_at=self._parse_dt(pr.get("closed_at")),
-            updated_at=self._parse_dt(pr["updated_at"]),
+            created_at=IsoDateParser.parse(pr["created_at"]),
+            closed_at=IsoDateParser.parse(pr.get("closed_at")),
+            updated_at=IsoDateParser.parse(pr["updated_at"]),
             additions=additions,
             deletions=deletions,
             comments=pr.get("comments", 0) + pr.get("review_comments", 0),
             comments_by_author=issue_comments_by_user + review_comments_by_user,
-            jira_codes=self._extract_jira_codes(pr.get("body")),
+            jira_codes=self._extract_jira_codes(pr.get("title"), pr.get("body")),
         )
         return pr_obj, reviews
 
@@ -185,7 +186,7 @@ class PullRequestProvider:
                     pr_number=number,
                     index=idx,
                     state=raw.get("state", ""),
-                    submitted_at=self._parse_dt(raw.get("submitted_at")),
+                    submitted_at=IsoDateParser.parse(raw.get("submitted_at")),
                     body=raw.get("body") or "",
                 )
             )
@@ -211,13 +212,6 @@ class PullRequestProvider:
             if text:
                 found.update(cls._JIRA_RE.findall(text))
         return sorted(found)
-
-    @staticmethod
-    def _parse_dt(s: str | None) -> datetime | None:
-        """Parse a GitHub ISO-8601 timestamp, returning None if the input is missing."""
-        if not s:
-            return None
-        return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
     @staticmethod
     def _file_extension(filename: str) -> str:

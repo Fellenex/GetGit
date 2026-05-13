@@ -26,7 +26,7 @@ For each PR:
 - Number, repo, title, merged/closed status, timestamps
 - Lines added / removed **per file extension** (`{".py": 20, ".yml": 5}`)
 - Total comment count *and* count of comments by the target user
-- Associated JIRA ticket codes — sorted, deduped flat list (`["WD-1234", "WD-5678", "YWFB-99"]`) extracted via regex `[A-Z]{2,10}-\d+` from the **PR description (body) only**. Title, branch name, and comments are intentionally not scanned.
+- Associated JIRA ticket codes — sorted, deduped flat list (`["WD-1234", "WD-5678", "YWFB-99"]`) extracted via regex `[A-Z]{2,10}-\d+` from the **PR title and description (body)**. Branch names and comments are intentionally not scanned (branches often have typos; comments often reference unrelated tickets).
 
 **Reviews** — every code review the user submitted on either set of PRs:
 - Source PR, 1-based ordinal index on that PR, state (`APPROVED` / `CHANGES_REQUESTED` / `COMMENTED` / `DISMISSED`), submitted-at, body

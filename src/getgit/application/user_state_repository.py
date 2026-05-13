@@ -1,9 +1,9 @@
 """Repository (file-backed) for the per-username `UserState`."""
 
-from datetime import datetime
 from pathlib import Path
 
 from ..exporting import JSONFileHandler
+from ..infrastructure.dates import IsoDateParser
 from .data import UserState
 
 
@@ -34,13 +34,13 @@ class UserStateRepository:
             return UserState()
         raw = self._json_handler.read(self._path)
         return UserState(
-            pr_search_updated_since=self._parse_dt(raw.get("pr_search_updated_since")),
+            pr_search_updated_since=IsoDateParser.parse(raw.get("pr_search_updated_since")),
             commits_per_repo={
-                repo: self._parse_dt(ts)
+                repo: IsoDateParser.parse(ts)
                 for repo, ts in (raw.get("commits_per_repo") or {}).items()
                 if ts
             },
-            last_run_at=self._parse_dt(raw.get("last_run_at")),
+            last_run_at=IsoDateParser.parse(raw.get("last_run_at")),
             last_run_status=raw.get("last_run_status", "never"),
         )
 
@@ -48,10 +48,3 @@ class UserStateRepository:
         """Persist the state via the handler. Returns the path written."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
         return self._json_handler.write(state, self._path)
-
-    @staticmethod
-    def _parse_dt(value: str | None) -> datetime | None:
-        """Parse an ISO-8601 string back into a datetime, tolerating None."""
-        if not value:
-            return None
-        return datetime.fromisoformat(value)

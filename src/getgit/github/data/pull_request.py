@@ -22,10 +22,11 @@ class PullRequest(JSONModel):
     was disabled (`--no-extension-breakdown`) and the value is the
     aggregate total.
     `jira_codes` is the deduped, sorted list of full ticket codes
-    extracted from the PR description (body) via the regex
+    extracted from the PR title and description (body) via the regex
     `[A-Z]{2,10}-\\d+` (e.g. `["WD-1234", "WD-5678", "YWFB-99"]`).
-    Title, branch name, and comments are intentionally *not* scanned —
-    we trust the description as the canonical source of ticket links.
+    Branch names and comments are intentionally *not* scanned —
+    branches frequently have typos and comments often reference
+    tickets the PR itself has nothing to do with.
     `updated_at` is GitHub's `updated_at` for this PR — used by the
     checkpoint to drive the next run's `updated:>=` search filter.
     """
