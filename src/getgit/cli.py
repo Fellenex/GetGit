@@ -36,7 +36,12 @@ def main(argv: list[str] | None = None) -> int:
         "--max-prs",
         type=int,
         default=None,
-        help="Cap pull requests collected (test/dev knob to limit API calls).",
+        help="Cap pull requests collected per set (test/dev knob).",
+    )
+    parser.add_argument(
+        "--no-extension-breakdown",
+        action="store_true",
+        help="Skip /pulls/{n}/files; store totals only under the '*' key.",
     )
     args = parser.parse_args(argv)
 
@@ -50,9 +55,16 @@ def main(argv: list[str] | None = None) -> int:
         repos = list_repos(client, args.username, is_self=is_self)
         print(f"Found {len(repos)} repos", file=sys.stderr)
 
-        pr_result = fetch_pull_requests(client, args.username, limit=args.max_prs)
+        pr_result = fetch_pull_requests(
+            client,
+            args.username,
+            limit=args.max_prs,
+            fetch_extensions=not args.no_extension_breakdown,
+        )
         print(
-            f"Found {len(pr_result.pull_requests)} closed PRs "
+            f"Found {len(pr_result.authored)} authored PRs, "
+            f"{len(pr_result.participated)} participated PRs, "
+            f"{len(pr_result.reviews)} reviews "
             f"(indexed {len(pr_result.commit_pr_index)} commits)",
             file=sys.stderr,
         )
@@ -70,7 +82,9 @@ def main(argv: list[str] | None = None) -> int:
         username=args.username,
         generated_at=datetime.now(timezone.utc),
         commits=commits,
-        pull_requests=pr_result.pull_requests,
+        authored_pull_requests=pr_result.authored,
+        participated_pull_requests=pr_result.participated,
+        reviews=pr_result.reviews,
     )
     paths = write_report(report, Path(args.out))
     for label, p in paths.items():

@@ -181,6 +181,21 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** add a `to_csv_row()` method on `JSONModel`; emit one combined CSV with a discriminator column; ship JSON only and let downstream tools convert.
 **Why:** keeping the conversion in storage avoids polluting the model layer with a serialization format that's strictly downstream of `to_jsonable()`. One file per model maps cleanly onto how spreadsheets and BI tools consume tabular data — combining them would force consumers to filter. The `;` join is lossless for JIRA codes (which never contain semicolons) and avoids CSV-quoting edge cases. If a future model becomes deeply nested, that's the trigger to introduce a per-model `to_csv_row()` with a custom flattening rule, but flat dataclasses don't need it yet.
 
+### 2026-05-12 — Track reviews; split PRs into authored vs participated
+**Decision:** the report now carries three PR-side collections: `authored_pull_requests` (search: `author:USER`), `participated_pull_requests` (union of `commenter:USER` and `reviewed-by:USER`, minus authored), and a flat `reviews` list of every review the user submitted on either set. New `Review` model (`pr_repo`, `pr_number`, `index` (1-based ordinal among the user's reviews on that PR), `state`, `submitted_at`, `body`).
+**Alternatives:** keep one combined PR list with an `authored_by_user: bool` field; nest reviews inside their PR rather than flattening; use GitHub's `involves:USER` qualifier (covers author/assignee/mentions/commenter, too broad).
+**Why:** authored vs participated answer fundamentally different questions ("what did I ship" vs "what did I help with"), so consumers shouldn't have to filter. Flat `reviews` list keeps the model symmetric with `commits` (authorship-as-output regardless of source) and makes the reviews CSV trivially diffable. `commenter` + `reviewed-by` is the most precise way to capture "user touched this PR".
+
+### 2026-05-12 — `additions`/`deletions` keyed by file extension; `--no-extension-breakdown` opt-out
+**Decision:** `PullRequest.additions` and `.deletions` are now `dict[str, int]` keyed by file extension (`{".py": 20, ".yml": 5}`). Empty key `""` is files without an extension. The sentinel key `"*"` means the breakdown was disabled and the value is the aggregate total. Disabled via `--no-extension-breakdown`, which skips the `/pulls/{n}/files` call and reads totals from the `/pulls/{n}` payload we already fetch.
+**Alternatives:** keep `int` totals and add a separate `additions_by_extension` field; parse the raw diff ourselves; bake extension grouping into the consumer.
+**Why:** consumers asking for per-extension breakdown almost never want both shapes — adding a parallel field is dead weight. Using a sentinel `"*"` keeps the schema stable across both modes (always `dict[str, int]`) so the JSON consumer doesn't need a type-switch. The flag exists because file-level fetches add one paginated call per PR; on huge histories that may be the difference between fitting in a rate-limit budget and not.
+
+### 2026-05-12 — `comments_by_author` alongside total `comments`
+**Decision:** `PullRequest.comments` (all-author total, free from `/pulls/{n}`) stays; new `comments_by_author: int` counts comments the target user authored across both `/issues/{n}/comments` and `/pulls/{n}/comments` (review/inline comments). Costs two extra paginated calls per PR.
+**Alternatives:** drop the all-author total; only count for participated PRs and set authored to `0`; use GraphQL to get both counts in one call.
+**Why:** for authored PRs the author-self-comment count signals self-discussion; for participated PRs it's the entire reason the PR is in the report. Both numbers belong. GraphQL would consolidate calls but introduces a second API surface for marginal savings — revisit if rate limits become a real ceiling.
+
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
 **Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.

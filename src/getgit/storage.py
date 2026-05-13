@@ -9,7 +9,7 @@ from .models import AuthorshipReport, JSONModel
 
 
 def write_report(report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
-    """Write the full report to `out_dir` as JSON plus one CSV per row-shaped model.
+    """Write the full report to `out_dir` as JSON plus one CSV per row-shaped collection.
 
     Returns a dict of `{format_label: path}` for everything written.
     Existing files are overwritten.
@@ -23,20 +23,36 @@ def write_report(report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
     paths["json"] = json_path
 
     paths["commits_csv"] = _write_csv(report.commits, out_dir / f"{base}.commits.csv")
-    paths["pull_requests_csv"] = _write_csv(
-        report.pull_requests, out_dir / f"{base}.pull_requests.csv"
+    paths["authored_pull_requests_csv"] = _write_csv(
+        report.authored_pull_requests, out_dir / f"{base}.authored_pull_requests.csv"
     )
+    paths["participated_pull_requests_csv"] = _write_csv(
+        report.participated_pull_requests,
+        out_dir / f"{base}.participated_pull_requests.csv",
+    )
+    paths["reviews_csv"] = _write_csv(report.reviews, out_dir / f"{base}.reviews.csv")
     return paths
+
+
+def _flatten_for_csv(value: object) -> object:
+    """Coerce a JSON-safe value into a CSV cell.
+
+    Lists become `;`-joined strings; dicts become `key:value` pairs
+    `;`-joined and key-sorted for determinism. Other values pass through.
+    """
+    if isinstance(value, list):
+        return ";".join(map(str, value))
+    if isinstance(value, dict):
+        return ";".join(f"{k}:{value[k]}" for k in sorted(value))
+    return value
 
 
 def _write_csv(rows: list[JSONModel], path: Path) -> Path:
     """Write a list of homogeneous JSONModel rows to `path`.
 
-    Columns come from the dataclass field order. List-valued fields are
-    joined with `;` (JIRA codes never contain semicolons, so this is
-    lossless and avoids CSV-quoting headaches). Empty input still writes
-    a header row inferred from the row type — but if `rows` is empty we
-    can't infer the type, so we write an empty file.
+    Columns come from the dataclass field order. List- and dict-valued
+    fields are flattened via `_flatten_for_csv`. Empty input writes an
+    empty file because we can't infer the column set without a row.
     """
     if not rows:
         path.write_text("", encoding="utf-8", newline="")
@@ -48,8 +64,5 @@ def _write_csv(rows: list[JSONModel], path: Path) -> Path:
         writer.writeheader()
         for row in rows:
             data = row.to_jsonable()
-            for key, value in list(data.items()):
-                if isinstance(value, list):
-                    data[key] = ";".join(map(str, value))
-            writer.writerow(data)
+            writer.writerow({k: _flatten_for_csv(v) for k, v in data.items()})
     return path

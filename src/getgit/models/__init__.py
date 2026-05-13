@@ -4,5 +4,6 @@ from .base import JSONModel
 from .commit import Commit
 from .pull_request import PullRequest
 from .report import AuthorshipReport
+from .review import Review
 
-__all__ = ["JSONModel", "Commit", "PullRequest", "AuthorshipReport"]
+__all__ = ["JSONModel", "Commit", "PullRequest", "Review", "AuthorshipReport"]

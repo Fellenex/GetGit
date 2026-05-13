@@ -8,13 +8,21 @@ from .base import JSONModel
 
 @dataclass
 class PullRequest(JSONModel):
-    """A closed (merged or unmerged) pull request authored by the user.
+    """A closed (merged or unmerged) pull request the target user touched.
 
     `merged` distinguishes the two terminal states (we only query
     `is:closed`, so an unmerged PR here means closed-without-merge).
-    `comments` sums issue comments and review comments. `jira_codes` is
-    the deduped list extracted from title, body, and branch name via
-    the regex `[A-Z]{2,10}-\\d+`.
+    `comments` sums issue comments and review comments (all authors).
+    `comments_by_author` is the subset authored by the target user —
+    for an authored PR this is "self-replies", for a participated PR
+    it's the reason the PR is in the report.
+    `additions` and `deletions` are dicts keyed by file extension
+    (e.g. `{".py": 20, ".yml": 5}`); the empty key `""` is files with no
+    extension. The sentinel key `"*"` means the per-extension breakdown
+    was disabled (`--no-extension-breakdown`) and the value is the
+    aggregate total.
+    `jira_codes` is the deduped list extracted from title, body, and
+    branch name via the regex `[A-Z]{2,10}-\\d+`.
     """
 
     number: int
@@ -23,7 +31,8 @@ class PullRequest(JSONModel):
     merged: bool
     created_at: datetime
     closed_at: datetime | None
-    additions: int
-    deletions: int
+    additions: dict[str, int]
+    deletions: dict[str, int]
     comments: int
+    comments_by_author: int
     jira_codes: list[str] = field(default_factory=list)
