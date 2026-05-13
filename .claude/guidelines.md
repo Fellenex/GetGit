@@ -144,3 +144,8 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Decision:** package lives at `src/getgit/`, declared in `pyproject.toml` via `tool.setuptools.packages.find` with `where = ["src"]`. Install with `pip install -e .`; run as `python -m getgit` or the `getgit` console script.
 **Alternatives:** flat layout (`getgit/` at repo root); package literally named `src` (no `pyproject.toml`); `requirements.txt` + `PYTHONPATH=src` runtime hack.
 **Why:** the src-layout prevents accidental imports from the working directory (a common cause of "tests pass locally but fail in CI" bugs) and forces the package to be installed before it's importable — which mirrors how phase 2 (FastAPI in Docker) will consume it. `pyproject.toml` becomes the single source of truth for dependencies, replacing `requirements.txt` for the package itself.
+
+### 2026-05-12 — Load secrets from `.env` via python-dotenv
+**Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
+**Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.
+**Why:** `.env` is the de facto standard for local secrets and matches what FastAPI/Docker will expect in phase 2/3. Keeping `os.environ` as the single read path means Docker, CI, and `.env` all flow through the same interface — no library lock-in inside fetchers.

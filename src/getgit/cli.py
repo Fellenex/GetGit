@@ -3,6 +3,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from .auth import PersonalTokenAuth
 from .fetchers.commits import fetch_commits
 from .fetchers.prs import fetch_pull_requests
@@ -12,6 +14,7 @@ from .storage import write_report
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     parser = argparse.ArgumentParser(prog="getgit", description="Scrape GitHub authorship data.")
     parser.add_argument("username", help="GitHub username to scrape.")
     parser.add_argument("--out", default="output", help="Output directory (default: ./output)")
