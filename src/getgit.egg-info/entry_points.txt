@@ -1,2 +1,0 @@
-[console_scripts]
-getgit = getgit.cli:main

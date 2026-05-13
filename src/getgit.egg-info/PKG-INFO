@@ -1,7 +1,0 @@
-Metadata-Version: 2.4
-Name: getgit
-Version: 0.1.0
-Summary: Scrape GitHub authorship data (commits, PRs, JIRA codes) for a user.
-Requires-Python: >=3.10
-Requires-Dist: httpx>=0.27
-Requires-Dist: python-dotenv>=1.0
