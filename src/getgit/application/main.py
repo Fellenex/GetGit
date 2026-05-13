@@ -15,7 +15,7 @@ from ..exporting import write_report
 from ..fetchers import CommitFetcher, PullRequestFetcher, RepoFetcher
 from ..github_api import GithubClient
 from ..models import AuthorshipReport
-from .app_settings import AppSettings
+from .data import AppSettings
 
 
 def run(settings: AppSettings) -> int:

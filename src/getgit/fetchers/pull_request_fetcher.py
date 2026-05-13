@@ -6,7 +6,7 @@ from pathlib import PurePosixPath
 
 from ..github_api import GithubClient
 from ..models import PullRequest, Review
-from .pull_request_fetch_result import PullRequestFetchResult
+from .data import PullRequestFetchResult
 
 
 class PullRequestFetcher:
