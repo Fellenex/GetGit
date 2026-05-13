@@ -2,29 +2,26 @@
 
 This document captures the design decisions made for GetGit. New work should respect these constraints unless explicitly revisited.
 
-## Goals
+User-facing material — what the project does, how to install and run it, output formats, task list — lives in [`README.md`](../README.md). This file is for design contracts and architectural reasoning, not usage docs.
 
-GetGit scrapes GitHub authorship data for a person. It runs in two phases:
+## Roadmap
 
-1. **Phase 1 (now)** — Python CLI. The operator supplies a Personal Access Token (PAT) and a target username. Pulls data for that one user.
-2. **Phase 2 (later)** — FastAPI web wrapper with GitHub OAuth. Any logged-in user can pull:
-   - Their **own** data (public + private)
-   - **Someone else's** public data
+GetGit ships in three phases. Each phase introduces a new deployment surface; the data model and fetcher core stay reusable across all of them.
 
-The Python core from phase 1 must remain reusable in phase 2. Only the auth-token source should change between the two.
+### Phase 1 — Python CLI
+Operator supplies a PAT and a target username. Runs locally; writes JSON + CSV to disk.
 
-## Data to collect
+- **v0.1.0** — download own (public + private) data via console.
+- **v0.2.0** — hardening release: tests, rate-limit handling, verify the stranger-public-data path end-to-end.
+- **v0.3.0** — dockerize so a single `docker compose up` produces the output files.
 
-**Commits**
-- Total count
-- Datetime of each commit
-- Commit message
+### Phase 2 — Local web wrapper
+FastAPI + GitHub OAuth running on the operator's machine. Any logged-in user can pull their own data (public + private) or anyone else's public data.
 
-**Pull Requests** (state: merged or closed)
-- Total count
-- Lines added / removed per PR (`additions` / `deletions` from REST)
-- Comment count per PR
-- JIRA ticket codes — extracted by regex `[A-Z]{2,10}-\d+` from PR title, body, and branch name. Dedupe per PR.
+### Phase 3 — Cloud-deployed, web-accessible
+Hosted FastAPI service reachable at a public URL. Any GitHub user can sign in and pull data without installing anything. Introduces multi-tenant concerns (per-user token storage, persistent results storage, isolation between users, abuse/quota controls) that don't exist in phase 2.
+
+The Python core from phase 1 must remain reusable in phases 2 and 3. The auth-token source and the storage destination are the only layers expected to change between phases.
 
 ## Architecture
 
@@ -48,35 +45,30 @@ Fetchers stay dumb: they ask the resolver "can I see X?" rather than encoding vi
 
 ### Fetchers
 
-One module per data domain. Each returns normalized dicts.
+One module per data domain. Each returns dataclass instances (see `models/`).
 - `repos.py`
 - `commits.py`
 - `prs.py`
-- (extend as needed: `issues.py`, `reviews.py`, `contributions.py`)
+- (extend as needed: `issues.py`, `contributions.py`)
 
 ### Storage / cache
 
-Local cache (SQLite or JSON keyed by `user/endpoint/etag`). Use ETags + `If-None-Match` so reruns don't burn rate limit.
-
-### CLI entry point
-
-```
-ghscrape <username> --include commits,prs --since 2024-01-01 --out data/
-```
+Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
 
 ## Tech choices
 
 - **Language**: Python.
 - **HTTP**: `httpx` (sync or async) — *not* PyGithub. PyGithub is REST-only and gets in the way when mixing GraphQL.
 - **REST** for repo/PR/commit details.
-- **GraphQL** (`api.github.com/graphql`) for contribution calendar and aggregate counts — REST does not expose these accurately.
-- **Web framework (phase 2)**: FastAPI + Authlib for OAuth.
+- **GraphQL** (`api.github.com/graphql`) for contribution calendar and aggregate counts when REST does not expose them accurately.
+- **Web framework (phase 2/3)**: FastAPI + Authlib for OAuth.
 
 ## Rate-limit notes
 
 - Authenticated REST: 5,000 req/hr.
 - Search API (`/search/commits`, `/search/issues`): 30 req/min, 1,000-result cap per query — slice by date range to work around.
-- Always set ETag headers to avoid spending quota on unchanged data.
+- Per-PR cost in the current design: 6 calls (`/pulls/{n}`, `/pulls/{n}/commits`, `/pulls/{n}/files`, `/pulls/{n}/reviews`, `/issues/{n}/comments`, `/pulls/{n}/comments`). `--no-extension-breakdown` drops it to 5.
+- Always set ETag headers when caching is added to avoid spending quota on unchanged data.
 
 ## Conventions
 
@@ -111,10 +103,10 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 
 ## Architectural decisions
 
-### 2026-05-12 — Roadmap by version
-**Decision:** v0.1.0 = download own (public + private) data via console; v0.2.0 = download a stranger's public data via console; v0.3.0 = dockerize so a single `docker compose up` produces the output files.
-**Alternatives:** ship the OAuth web wrapper before dockerizing; combine v0.1 and v0.2 (since the only difference is scope-resolver behavior).
-**Why:** front-loading the self-only path keeps the surface area small and lets us validate the data shape and JIRA-extraction quality before opening it to arbitrary users. Docker comes before the web wrapper because the web wrapper depends on a known-good runtime.
+### 2026-05-12 — Roadmap by phase
+**Decision:** three phases — Phase 1 (Python CLI, versioned v0.1/v0.2/v0.3 internally), Phase 2 (local FastAPI + OAuth), Phase 3 (cloud-deployed, public URL). The Python core from Phase 1 must stay reusable in 2 and 3 — only the auth source and storage destination change between phases.
+**Alternatives:** ship the OAuth web wrapper before dockerizing; combine v0.1 and v0.2 (since the only difference is scope-resolver behavior); skip phase 2 and jump straight to cloud.
+**Why:** front-loading the self-only path keeps the surface area small and lets us validate the data shape and JIRA-extraction quality before opening it to arbitrary users. Docker comes before the web wrapper because the web wrapper depends on a known-good runtime. Phase 2 (local web) exists as a deliberate stepping-stone so OAuth and request-time scope resolution are working before we add multi-tenant cloud concerns.
 
 ### 2026-05-12 — JSON as the export format
 **Decision:** all collected data is serialized to `.json` files.
