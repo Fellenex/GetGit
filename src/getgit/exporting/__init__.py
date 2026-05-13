@@ -2,7 +2,7 @@
 
 from .csv_writer import CsvWriter
 from .json_writer import JsonWriter
-from .report_exporter import write_report
+from .report_exporter import ReportExporter
 from .writer import Writer
 
-__all__ = ["Writer", "CsvWriter", "JsonWriter", "write_report"]
+__all__ = ["Writer", "CsvWriter", "JsonWriter", "ReportExporter"]
