@@ -183,23 +183,18 @@ class PullRequestFetcher:
             index[(repo_full, c["sha"])] = number
 
     @classmethod
-    def _extract_jira_codes(cls, *texts: str | None) -> dict[str, list[str]]:
-        """Pull JIRA codes from any number of text blobs and bucket by project prefix.
+    def _extract_jira_codes(cls, *texts: str | None) -> list[str]:
+        """Pull JIRA codes from any number of text blobs.
 
-        Returns a dict keyed by project prefix (e.g. `"WD"`) with a
-        sorted, deduped list of full codes (`["WD-1234", "WD-5678"]`).
-        Outer key order is alphabetical for determinism. An input with
-        no codes yields an empty dict.
+        Uses a set internally so deduping is automatic; returns a sorted
+        list so the JSON output is deterministic across runs. An input
+        with no codes yields an empty list.
         """
         found: set[str] = set()
         for text in texts:
             if text:
                 found.update(cls._JIRA_RE.findall(text))
-        grouped: dict[str, list[str]] = {}
-        for code in sorted(found):
-            prefix = code.split("-", 1)[0]
-            grouped.setdefault(prefix, []).append(code)
-        return grouped
+        return sorted(found)
 
     @staticmethod
     def _parse_dt(s: str | None) -> datetime | None:

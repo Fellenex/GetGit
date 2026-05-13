@@ -26,7 +26,7 @@ For each PR:
 - Number, repo, title, merged/closed status, timestamps
 - Lines added / removed **per file extension** (`{".py": 20, ".yml": 5}`)
 - Total comment count *and* count of comments by the target user
-- Associated JIRA ticket codes — bucketed by project prefix (`{"WD": ["WD-1234"], "YWFB": ["YWFB-99"]}`), extracted via regex `[A-Z]{2,10}-\d+` over title, body, and branch name
+- Associated JIRA ticket codes — sorted, deduped flat list (`["WD-1234", "WD-5678", "YWFB-99"]`) extracted via regex `[A-Z]{2,10}-\d+` over title, body, and branch name
 
 **Reviews** — every code review the user submitted on either set of PRs:
 - Source PR, 1-based ordinal index on that PR, state (`APPROVED` / `CHANGES_REQUESTED` / `COMMENTED` / `DISMISSED`), submitted-at, body
@@ -102,7 +102,7 @@ Each `<username>.<collection>.json` file is a JSON array of these row shapes.
     // "*" appears (instead of per-extension keys) when --no-extension-breakdown
     "comments": 7,                                           // total across all authors
     "comments_by_author": 2,                                 // subset by the target user
-    "jira_codes": {"WD": ["WD-1234", "WD-5678"]}             // keyed by project prefix; lists are sorted & deduped
+    "jira_codes": ["WD-1234", "WD-5678", "YWFB-99"]          // sorted, deduped flat list
   }
 ]
 ```
@@ -133,9 +133,8 @@ One CSV per top-level collection. Columns mirror the dataclass field order.
 | `<u>.reviews.csv` | `pr_repo, pr_number, index, state, submitted_at, body` |
 
 **Encoding rules for non-scalar cells:**
-- List values → `;`-joined string.
-- Dict-of-scalar values (e.g. `additions`) → `key:value;...` pairs sorted by key: `.py:120;.yml:8`
-- Dict-of-list values (e.g. `jira_codes`) → `key:item|item;...` — outer entries separated by `;`, inner list members by `|`: `WD:WD-1234|WD-5678;YWFB:YWFB-99`
+- List values (e.g. `jira_codes`) → `;`-joined string: `WD-1234;WD-5678;YWFB-99`
+- Dict values (e.g. `additions`) → `key:value;...` pairs sorted by key: `.py:120;.yml:8`
 - An empty list or empty dict renders as the empty string.
 
 If a collection is empty, the corresponding CSV is written as an empty file (no header) — there's no row from which to infer column names.

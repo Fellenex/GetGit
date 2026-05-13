@@ -35,23 +35,13 @@ class CsvWriter:
     def _flatten_for_csv(value: object) -> object:
         """Coerce a JSON-safe value into a CSV cell.
 
-        Lists become `;`-joined strings. Dicts become `key:value` pairs
-        `;`-joined and key-sorted for determinism — when a value is
-        itself a list, its members are joined with `|` so the outer `;`
-        remains unambiguous (e.g. `WD:WD-1|WD-2;YWFB:YWFB-9`). Other
-        values pass through untouched.
+        Lists become `;`-joined strings (e.g. `WD-1;WD-2;YWFB-9`).
+        Dicts become `key:value` pairs `;`-joined and key-sorted for
+        determinism (e.g. `.py:120;.yml:8`). Other values pass through
+        untouched. No current model has nested-collection values.
         """
         if isinstance(value, list):
             return ";".join(map(str, value))
         if isinstance(value, dict):
-            return ";".join(
-                f"{k}:{CsvWriter._inner(value[k])}" for k in sorted(value)
-            )
+            return ";".join(f"{k}:{value[k]}" for k in sorted(value))
         return value
-
-    @staticmethod
-    def _inner(value: object) -> str:
-        """Render a dict value: lists get `|`-joined, scalars stringify."""
-        if isinstance(value, list):
-            return "|".join(map(str, value))
-        return str(value)

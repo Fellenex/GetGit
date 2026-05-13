@@ -222,6 +222,12 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Decision:** changed the field from `list[str]` to `dict[str, list[str]]`. `{"WD": ["WD-1234", "WD-5678"], "YWFB": ["YWFB-99"]}`. Inner lists are sorted/deduped; outer keys are alphabetical.
 **Alternatives:** keep the flat list; use `dict[str, int]` (project → mention count); switch to a custom dataclass.
 **Why:** mirrors the `additions`/`deletions` per-extension shape (group by category), which is how consumers want to slice this data ("how many YWFB tickets did this PR touch?"). Inner lists keep the full codes — a count alone would lose the references. CSV gets a nested separator (`|` inside lists, `;` between entries) so the dict-of-lists round-trips through a single cell unambiguously.
+**Reversed 2026-05-13:** see "Revert `jira_codes` to a flat sorted list" below — the bucketing was unnecessary and made the simple case (any code touched?) require an extra step.
+
+### 2026-05-13 — Revert `jira_codes` to a flat sorted list
+**Decision:** `PullRequest.jira_codes` is back to `list[str]` — sorted, deduped, e.g. `["WD-1234", "WD-5678", "YWFB-99"]`. CSV serialization is a plain `;`-join. The `_inner` helper in `CsvWriter` was deleted as dead code (no remaining model has dict-of-list values).
+**Alternatives:** keep the project-prefix bucketing; switch to `set[str]` (not JSON-serializable without conversion).
+**Why:** consumers grouping by project prefix can do `defaultdict(list)` in a one-liner; consumers asking "did this PR touch any tickets?" or "list all tickets" had to flatten the dict first. The bucketing optimized the rarer use case at the cost of the common one. Flat-list is also smaller in JSON output and CSV cells.
 
 ### 2026-05-12 — Public methods/functions appear above private (`_`-prefixed)
 **Decision:** within any file (or class), the public surface comes first; `_`-prefixed helpers go below.

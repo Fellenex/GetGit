@@ -21,11 +21,9 @@ class PullRequest(JSONModel):
     extension. The sentinel key `"*"` means the per-extension breakdown
     was disabled (`--no-extension-breakdown`) and the value is the
     aggregate total.
-    `jira_codes` is keyed by project prefix and maps to the sorted,
-    deduped list of full codes for that project (e.g.
-    `{"WD": ["WD-1234", "WD-5678"], "YWFB": ["YWFB-99"]}`). Codes are
+    `jira_codes` is the deduped, sorted list of full ticket codes
     extracted from title, body, and branch name via the regex
-    `[A-Z]{2,10}-\\d+`.
+    `[A-Z]{2,10}-\\d+` (e.g. `["WD-1234", "WD-5678", "YWFB-99"]`).
     """
 
     number: int
@@ -38,4 +36,4 @@ class PullRequest(JSONModel):
     deletions: dict[str, int]
     comments: int
     comments_by_author: int
-    jira_codes: dict[str, list[str]] = field(default_factory=dict)
+    jira_codes: list[str] = field(default_factory=list)

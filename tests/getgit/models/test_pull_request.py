@@ -19,13 +19,13 @@ def test_to_jsonable_emits_dict_diff_stats_and_jira_codes():
         deletions={".py": 2},
         comments=4,
         comments_by_author=1,
-        jira_codes={"WD": ["WD-1"]},
+        jira_codes=["WD-1"],
     )
 
     out = pr.to_jsonable()
 
     assert out["additions"] == {".py": 10, "Dockerfile": 3}
     assert out["deletions"] == {".py": 2}
-    assert out["jira_codes"] == {"WD": ["WD-1"]}
+    assert out["jira_codes"] == ["WD-1"]
     assert out["comments_by_author"] == 1
     assert out["merged"] is True

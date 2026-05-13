@@ -29,7 +29,7 @@ def test_dict_of_scalars_renders_as_key_value_pairs(tmp_path: Path):
             number=1, repo="o/r", title="t", merged=True,
             created_at=_ts(), closed_at=_ts(),
             additions={".py": 10, ".yml": 5}, deletions={},
-            comments=0, comments_by_author=0, jira_codes={},
+            comments=0, comments_by_author=0, jira_codes=[],
         )
     ]
 
@@ -39,22 +39,21 @@ def test_dict_of_scalars_renders_as_key_value_pairs(tmp_path: Path):
     assert ".py:10;.yml:5" in line
 
 
-def test_dict_of_lists_uses_pipe_for_inner_separator(tmp_path: Path):
-    """`{"WD": ["WD-1", "WD-2"]}` should render as `WD:WD-1|WD-2`."""
+def test_list_renders_as_semicolon_joined(tmp_path: Path):
+    """List fields like jira_codes should render as `;`-joined strings."""
     rows = [
         PullRequest(
             number=1, repo="o/r", title="t", merged=True,
             created_at=_ts(), closed_at=_ts(),
             additions={}, deletions={}, comments=0, comments_by_author=0,
-            jira_codes={"WD": ["WD-1", "WD-2"], "YWFB": ["YWFB-9"]},
+            jira_codes=["PTR-99", "WD-1", "YWFB-9"],
         )
     ]
 
     path = CsvWriter().write(rows, tmp_path / "out.csv")
 
     line = path.read_text(encoding="utf-8").splitlines()[1]
-    assert "WD:WD-1|WD-2" in line
-    assert "YWFB:YWFB-9" in line
+    assert "PTR-99;WD-1;YWFB-9" in line
 
 
 def test_empty_input_writes_empty_file(tmp_path: Path):

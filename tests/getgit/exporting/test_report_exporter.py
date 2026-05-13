@@ -26,7 +26,7 @@ def _sample_report() -> AuthorshipReport:
                 deletions={".py": 2},
                 comments=3,
                 comments_by_author=0,
-                jira_codes={"WD": ["WD-1"], "YWFB": ["YWFB-9", "YWFB-12"]},
+                jira_codes=["WD-1", "YWFB-12", "YWFB-9"],
             )
         ],
         participated_pull_requests=[
@@ -41,7 +41,7 @@ def _sample_report() -> AuthorshipReport:
                 deletions={},
                 comments=4,
                 comments_by_author=2,
-                jira_codes={},
+                jira_codes=[],
             )
         ],
         reviews=[
