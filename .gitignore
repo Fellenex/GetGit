@@ -5,6 +5,9 @@ __pycache__/
 build/
 dist/
 .pytest_cache/
+# Defensive: __init__.py files under tests/ shadow the real `getgit` package
+# and break pytest collection. See .claude/guidelines.md.
+tests/**/__init__.py
 .venv/
 venv/
 output/
