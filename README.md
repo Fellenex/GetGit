@@ -26,7 +26,7 @@ Phase 2 (planned): FastAPI web wrapper with GitHub OAuth login, allowing any use
 ```bash
 pip install -r requirements.txt
 export GITHUB_TOKEN=ghp_your_token_here    # PowerShell: $env:GITHUB_TOKEN="ghp_..."
-python -m getgit <username> [--out output]
+python -m src <username> [--out output]
 ```
 
 When `<username>` matches the authenticated user, both public and private repos are scanned. Otherwise only public data is returned.
