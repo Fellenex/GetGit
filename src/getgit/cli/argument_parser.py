@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-from .app_settings import AppSettings
+from ..application import AppSettings
 
 
 class ArgumentParser:

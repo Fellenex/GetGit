@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from getgit.cli import ArgumentParser, AppSettings
+from getgit.application import AppSettings
+from getgit.cli import ArgumentParser
 
 
 def test_parses_minimal_args_into_app_settings():

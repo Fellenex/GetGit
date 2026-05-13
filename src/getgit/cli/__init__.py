@@ -1,7 +1,6 @@
-"""CLI domain — argument parsing, runtime settings, and the entry point."""
+"""CLI domain — argument parsing and the console entry point."""
 
-from .app_settings import AppSettings
 from .argument_parser import ArgumentParser
 from .main import main
 
-__all__ = ["AppSettings", "ArgumentParser", "main"]
+__all__ = ["ArgumentParser", "main"]
