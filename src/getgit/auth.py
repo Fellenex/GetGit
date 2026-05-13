@@ -1,8 +1,8 @@
 """Authentication strategies for the GitHub API.
 
-Each strategy returns a configured `httpx.Client`. Fetchers depend on the
-client, never on the token itself, so swapping PAT for OAuth in phase 2
-won't touch fetcher code.
+Each strategy produces a configured `GithubClient`. Fetchers depend on
+the client, never on the token itself, so swapping PAT for OAuth in
+phase 2 won't touch fetcher code.
 """
 
 import os
@@ -10,16 +10,18 @@ from typing import Protocol
 
 import httpx
 
+from .github_client import GithubClient
+
 
 class Auth(Protocol):
     """Common interface for any auth strategy.
 
-    An implementation knows how to produce an `httpx.Client` that is
+    An implementation knows how to produce a `GithubClient` that is
     pre-authenticated against `https://api.github.com`.
     """
 
-    def client(self) -> httpx.Client:
-        """Return an `httpx.Client` ready to make authenticated calls."""
+    def client(self) -> GithubClient:
+        """Return a `GithubClient` ready to make authenticated calls."""
         ...
 
 
@@ -42,9 +44,9 @@ class PersonalTokenAuth:
                 "GITHUB_TOKEN not set. Export your PAT or pass token= explicitly."
             )
 
-    def client(self) -> httpx.Client:
-        """Build an `httpx.Client` with auth headers and the GitHub base URL."""
-        return httpx.Client(
+    def client(self) -> GithubClient:
+        """Build a `GithubClient` with auth headers and the GitHub base URL."""
+        http = httpx.Client(
             base_url="https://api.github.com",
             headers={
                 "Authorization": f"Bearer {self.token}",
@@ -54,3 +56,4 @@ class PersonalTokenAuth:
             },
             timeout=30.0,
         )
+        return GithubClient(http)

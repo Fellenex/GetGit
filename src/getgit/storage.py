@@ -37,14 +37,24 @@ def write_report(report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
 def _flatten_for_csv(value: object) -> object:
     """Coerce a JSON-safe value into a CSV cell.
 
-    Lists become `;`-joined strings; dicts become `key:value` pairs
-    `;`-joined and key-sorted for determinism. Other values pass through.
+    Lists become `;`-joined strings. Dicts become `key:value` pairs
+    `;`-joined and key-sorted for determinism — when a value is itself
+    a list, its members are joined with `|` so the outer `;` remains
+    unambiguous (e.g. `WD:WD-1|WD-2;YWFB:YWFB-9`). Other values pass
+    through untouched.
     """
     if isinstance(value, list):
         return ";".join(map(str, value))
     if isinstance(value, dict):
-        return ";".join(f"{k}:{value[k]}" for k in sorted(value))
+        return ";".join(f"{k}:{_inner(value[k])}" for k in sorted(value))
     return value
+
+
+def _inner(value: object) -> str:
+    """Render a dict value: lists get `|`-joined, scalars stringify."""
+    if isinstance(value, list):
+        return "|".join(map(str, value))
+    return str(value)
 
 
 def _write_csv(rows: list[JSONModel], path: Path) -> Path:

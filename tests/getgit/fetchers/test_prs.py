@@ -25,29 +25,35 @@ def test_file_extension_dotfiles_are_their_own_key():
     assert _file_extension(".gitignore") == ".gitignore"
 
 
+def test_extract_jira_codes_groups_by_project_prefix():
+    """Codes should bucket under their project prefix."""
+    out = _extract_jira_codes("WD-1 YWFB-2 WD-3")
+    assert out == {"WD": ["WD-1", "WD-3"], "YWFB": ["YWFB-2"]}
+
+
 def test_extract_jira_codes_dedupes_across_inputs():
-    """A code appearing in multiple blobs should appear once in the result."""
-    codes = _extract_jira_codes("WD-1 and YWFB-2", "WD-1 again", "PTR-99")
-    assert codes == ["PTR-99", "WD-1", "YWFB-2"]
+    """A code appearing in multiple blobs should appear once in its project bucket."""
+    out = _extract_jira_codes("WD-1 and YWFB-2", "WD-1 again", "PTR-99")
+    assert out == {"PTR": ["PTR-99"], "WD": ["WD-1"], "YWFB": ["YWFB-2"]}
 
 
 def test_extract_jira_codes_ignores_none_and_empty():
     """None and empty strings should be tolerated."""
-    assert _extract_jira_codes(None, "", "WD-5") == ["WD-5"]
+    assert _extract_jira_codes(None, "", "WD-5") == {"WD": ["WD-5"]}
 
 
-def test_extract_jira_codes_returns_sorted_for_deterministic_output():
-    """Output order should not depend on input order."""
+def test_extract_jira_codes_is_deterministic_across_input_orders():
+    """Output should not depend on input order."""
     a = _extract_jira_codes("WD-1 YWFB-2 PTR-3")
     b = _extract_jira_codes("PTR-3 YWFB-2 WD-1")
-    assert a == b == ["PTR-3", "WD-1", "YWFB-2"]
+    assert a == b == {"PTR": ["PTR-3"], "WD": ["WD-1"], "YWFB": ["YWFB-2"]}
 
 
 def test_extract_jira_codes_requires_uppercase_prefix():
     """Lowercase prefixes (e.g. `wd-1`) must not match — JIRA codes are uppercase."""
-    assert _extract_jira_codes("wd-1 and Pr-2") == []
+    assert _extract_jira_codes("wd-1 and Pr-2") == {}
 
 
-def test_extract_jira_codes_no_match_returns_empty_list():
-    """No matches anywhere should produce an empty list (not None)."""
-    assert _extract_jira_codes("nothing here", "still nothing") == []
+def test_extract_jira_codes_no_match_returns_empty_dict():
+    """No matches anywhere should produce an empty dict (not None)."""
+    assert _extract_jira_codes("nothing here", "still nothing") == {}

@@ -76,6 +76,7 @@ Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB o
 - Trust internal code; validate only at system boundaries (PAT input, GitHub API responses, user-supplied usernames).
 - Default to no inline comments. Add one only when the *why* is non-obvious.
 - **Every function and class gets a docstring.** Even one-liners. State *what* it does and, when it isn't obvious, *why*. Document non-trivial parameters and return shapes. Module-level docstrings are encouraged when a file's role isn't clear from its name.
+- **Public methods/functions appear above private ones** (`_`-prefixed) in every file. Reading top-to-bottom should walk the public surface first, then drop into helpers.
 - Prefer editing existing files over creating new ones.
 
 ## Recording architectural decisions
@@ -202,6 +203,26 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Decision:** every `@dataclass` lives in its own file. New homes: `getgit/settings.py` (`AppSettings`), `getgit/fetchers/pull_request_fetch_result.py` (`PullRequestFetchResult`). Tests follow the same one-file-per-source-file rule under `tests/getgit/...`.
 **Alternatives:** group related dataclasses in `models.py` / `results.py` files; rely on a flat test file per concern (e.g., `test_models.py`).
 **Why:** a 1:1 file mapping makes "where does this type live?" and "where do I add a test for this file?" mechanical questions with no judgment calls. Costs a few extra files but keeps imports unambiguous and diffs scoped — particularly important as the model count grows in phase 2/3.
+
+### 2026-05-12 — `GithubClient` class replaces free-function `github_api`
+**Decision:** the GitHub-side network surface is now `getgit.github_client.GithubClient`, a class wrapping `httpx.Client`. It exposes `get`, `paginate`, and `viewer_login`, and acts as a context manager. `Auth.client()` returns a `GithubClient` directly; the old `github_api.py` module is gone.
+**Alternatives:** keep `paginate` as a free function; subclass `httpx.Client`; introduce a thin GraphQL helper alongside.
+**Why:** every fetcher now takes one constructor argument (the client) instead of receiving a raw `httpx.Client` plus importing free helpers. That's the seam phase 2 will need: an OAuth-backed `GithubClient` (or a per-request mock) drops in without changing fetcher code. Composition over `httpx.Client` keeps our public surface narrow — fetchers can't accidentally reach into low-level HTTP details.
+
+### 2026-05-12 — Fetchers are classes parameterized by `GithubClient`
+**Decision:** `RepoFetcher`, `CommitFetcher`, and `PullRequestFetcher` are classes. Each takes a `GithubClient` in `__init__` and exposes its work via methods (`list_repos`, `fetch`, `fetch`).
+**Alternatives:** keep the module-level functions and pass the client every call; use a single mega-fetcher class.
+**Why:** stateful collaboration with the client is the norm (every method makes calls), so the client becomes a constructor param instead of polluting every signature. Per-domain classes mirror the per-domain modules and stay independently testable. A single mega-fetcher would couple unrelated concerns and grow indefinitely.
+
+### 2026-05-12 — `PullRequest.jira_codes` is `dict[str, list[str]]` keyed by project prefix
+**Decision:** changed the field from `list[str]` to `dict[str, list[str]]`. `{"WD": ["WD-1234", "WD-5678"], "YWFB": ["YWFB-99"]}`. Inner lists are sorted/deduped; outer keys are alphabetical.
+**Alternatives:** keep the flat list; use `dict[str, int]` (project → mention count); switch to a custom dataclass.
+**Why:** mirrors the `additions`/`deletions` per-extension shape (group by category), which is how consumers want to slice this data ("how many YWFB tickets did this PR touch?"). Inner lists keep the full codes — a count alone would lose the references. CSV gets a nested separator (`|` inside lists, `;` between entries) so the dict-of-lists round-trips through a single cell unambiguously.
+
+### 2026-05-12 — Public methods/functions appear above private (`_`-prefixed)
+**Decision:** within any file (or class), the public surface comes first; `_`-prefixed helpers go below.
+**Alternatives:** alphabetical ordering; helpers above their callers (a la C); no rule.
+**Why:** reading top-to-bottom should answer "what does this thing do?" before "how does it do it?". This also localizes the public API at a glance without scanning past helpers.
 
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.

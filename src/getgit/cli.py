@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 
 from .argument_parser import ArgumentParser
 from .auth import PersonalTokenAuth
-from .fetchers.commits import fetch_commits
-from .fetchers.prs import fetch_pull_requests
-from .fetchers.repos import list_repos, viewer_login
+from .fetchers.commits import CommitFetcher
+from .fetchers.prs import PullRequestFetcher
+from .fetchers.repos import RepoFetcher
 from .models import AuthorshipReport
 from .settings import AppSettings
 from .storage import write_report
@@ -30,7 +30,7 @@ def _run(settings: AppSettings) -> int:
     """Execute the scrape using a fully-resolved `AppSettings`."""
     auth = PersonalTokenAuth()
     with auth.client() as client:
-        viewer = viewer_login(client)
+        viewer = client.viewer_login()
         is_self = viewer.lower() == settings.username.lower()
 
         print(
@@ -38,11 +38,10 @@ def _run(settings: AppSettings) -> int:
             file=sys.stderr,
         )
 
-        repos = list_repos(client, settings.username, is_self=is_self)
+        repos = RepoFetcher(client).list_repos(settings.username, is_self=is_self)
         print(f"Found {len(repos)} repos", file=sys.stderr)
 
-        pr_result = fetch_pull_requests(
-            client,
+        pr_result = PullRequestFetcher(client).fetch(
             settings.username,
             limit=settings.max_prs,
             fetch_extensions=settings.fetch_extensions,
@@ -55,8 +54,7 @@ def _run(settings: AppSettings) -> int:
             file=sys.stderr,
         )
 
-        commits = fetch_commits(
-            client,
+        commits = CommitFetcher(client).fetch(
             repos,
             settings.username,
             limit=settings.max_commits,

@@ -24,7 +24,7 @@ def test_serializes_nested_collections_recursively():
                 deletions={".py": 2},
                 comments=3,
                 comments_by_author=1,
-                jira_codes=["WD-1"],
+                jira_codes={"WD": ["WD-1"]},
             )
         ],
         participated_pull_requests=[],
@@ -46,5 +46,6 @@ def test_serializes_nested_collections_recursively():
     assert out["generated_at"] == "2026-05-12T00:00:00+00:00"
     assert out["commits"][0]["sha"] == "a"
     assert out["authored_pull_requests"][0]["additions"] == {".py": 10}
+    assert out["authored_pull_requests"][0]["jira_codes"] == {"WD": ["WD-1"]}
     assert out["participated_pull_requests"] == []
     assert out["reviews"][0]["state"] == "APPROVED"

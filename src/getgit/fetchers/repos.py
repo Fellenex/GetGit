@@ -1,29 +1,30 @@
 """Repository discovery — the only place self vs stranger diverges."""
 
-import httpx
-
-from ..github_api import paginate
+from ..github_client import GithubClient
 
 
-def viewer_login(client: httpx.Client) -> str:
-    """Return the login of the user the PAT belongs to.
+class RepoFetcher:
+    """Lists repositories owned by a target user.
 
-    Used to decide whether the target username is "self" (and therefore
-    eligible for private-repo enumeration).
+    The `is_self` branch is the entire client-side scope check: the
+    GitHub API enforces visibility server-side based on the PAT.
     """
-    resp = client.get("/user")
-    resp.raise_for_status()
-    return resp.json()["login"]
 
+    def __init__(self, client: GithubClient):
+        """Bind to a `GithubClient` for all subsequent calls."""
+        self._client = client
 
-def list_repos(client: httpx.Client, username: str, is_self: bool) -> list[dict]:
-    """List repos owned by `username`.
+    def list_repos(self, username: str, is_self: bool) -> list[dict]:
+        """List repos owned by `username`.
 
-    `is_self=True` uses `/user/repos` (returns public + private the PAT
-    can see). `is_self=False` uses `/users/{username}/repos` (public
-    only). The GitHub API enforces visibility server-side, so this single
-    branch is the entire client-side scope check.
-    """
-    if is_self:
-        return list(paginate(client, "/user/repos", {"affiliation": "owner", "visibility": "all"}))
-    return list(paginate(client, f"/users/{username}/repos"))
+        `is_self=True` uses `/user/repos` (returns public + private the
+        PAT can see). `is_self=False` uses `/users/{username}/repos`
+        (public only).
+        """
+        if is_self:
+            return list(
+                self._client.paginate(
+                    "/user/repos", {"affiliation": "owner", "visibility": "all"}
+                )
+            )
+        return list(self._client.paginate(f"/users/{username}/repos"))

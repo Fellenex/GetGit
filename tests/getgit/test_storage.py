@@ -26,7 +26,7 @@ def _sample_report() -> AuthorshipReport:
                 deletions={".py": 2},
                 comments=3,
                 comments_by_author=0,
-                jira_codes=["WD-1", "YWFB-9"],
+                jira_codes={"WD": ["WD-1"], "YWFB": ["YWFB-9", "YWFB-12"]},
             )
         ],
         participated_pull_requests=[
@@ -41,7 +41,7 @@ def _sample_report() -> AuthorshipReport:
                 deletions={},
                 comments=4,
                 comments_by_author=2,
-                jira_codes=[],
+                jira_codes={},
             )
         ],
         reviews=[
@@ -79,7 +79,16 @@ def test_pr_csv_serializes_dict_fields_as_key_value_pairs(tmp_path: Path):
 
     assert ".py:10;.yml:5" in line
     assert ".py:2" in line
-    assert "WD-1;YWFB-9" in line
+
+
+def test_pr_csv_jira_codes_dict_of_lists_uses_pipe_for_inner(tmp_path: Path):
+    """jira_codes is dict[str, list[str]]; CSV uses `|` between list members."""
+    paths = write_report(_sample_report(), tmp_path)
+    line = paths["authored_pull_requests_csv"].read_text(encoding="utf-8").splitlines()[1]
+
+    # Single-item list: just the code; multi-item list: `|`-joined.
+    assert "WD:WD-1" in line
+    assert "YWFB:YWFB-9|YWFB-12" in line
 
 
 def test_reviews_csv_columns(tmp_path: Path):
