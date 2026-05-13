@@ -73,4 +73,4 @@ def test_viewer_login_returns_login_field():
     c = _client_with([_resp({"login": "alice", "id": 42})])
 
     assert c.viewer_login() == "alice"
-    c._http.get.assert_called_with("/user")
+    c._http.get.assert_called_with("/user", params=None)

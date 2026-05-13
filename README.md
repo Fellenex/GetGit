@@ -170,7 +170,9 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 | Same heavy user, breakdown disabled | `--no-extension-breakdown` | `~30` + `5 × 2,000` + `120` = **~10,150** ❗ still over |
 | Heavy user, throttled by `--max-prs 400` | `--max-prs 400 --no-extension-breakdown` | `~30` + `5 × 800` + `120` = **~4,150** ✅ |
 
-**Rule of thumb:** if you expect more than ~400 PRs per set, use `--no-extension-breakdown` and/or `--max-prs` to stay under one hour's budget. The fetcher does not currently sleep on rate-limit responses — exceeding the budget will surface as `403`s mid-run.
+**Rule of thumb:** if you expect more than ~400 PRs per set, use `--no-extension-breakdown` and/or `--max-prs` to stay under one hour's budget.
+
+**On 403:** the client locks itself on the first `403`, aborts the scrape, prints a one-line message to stderr, and exits with code `1` — no report is written, and no further GitHub calls are made. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
 
 ## Tests
 

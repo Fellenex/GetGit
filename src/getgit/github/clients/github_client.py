@@ -5,6 +5,7 @@ from typing import Iterator
 import httpx
 
 from ...authentication import GithubSettings
+from .rate_limit_exceeded_error import RateLimitExceededError
 
 
 class GithubClient:
@@ -13,7 +14,9 @@ class GithubClient:
     Built from a `GithubSettings` so the constructor encapsulates the
     auth-header wiring. Acts as a context manager — opens its
     underlying `httpx.Client` on `__enter__` and closes it on
-    `__exit__`.
+    `__exit__`. Once a 403 is observed, the client locks itself: every
+    subsequent call raises `RateLimitExceededError` without hitting the
+    network.
     """
 
     def __init__(self, settings: GithubSettings):
@@ -28,6 +31,7 @@ class GithubClient:
             },
             timeout=settings.timeout,
         )
+        self._rate_limited = False
 
     def __enter__(self) -> "GithubClient":
         """Enter the underlying HTTP client's context."""
@@ -39,8 +43,11 @@ class GithubClient:
         self._http.__exit__(*exc)
 
     def get(self, url: str, params: dict | None = None) -> httpx.Response:
-        """Perform a single GET — useful when you don't need pagination."""
-        return self._http.get(url, params=params)
+        """Perform a single GET. Raises `RateLimitExceededError` on 403."""
+        self._guard_rate_limit()
+        response = self._http.get(url, params=params)
+        self._check_rate_limit(response)
+        return response
 
     def paginate(self, url: str, params: dict | None = None) -> Iterator[dict]:
         """Yield every item across all pages of a GitHub REST endpoint.
@@ -48,14 +55,17 @@ class GithubClient:
         Follows the `Link: ...; rel="next"` header — works for both list
         endpoints (which return arrays) and search endpoints (which wrap
         results under `"items"`). Query params are sent on the first
-        request only; the `next` URL already contains them.
+        request only; the `next` URL already contains them. Aborts (and
+        locks the client) on the first 403.
         """
         merged_params = dict(params or {})
         merged_params.setdefault("per_page", 100)
         next_url: str | None = url
         next_params: dict | None = merged_params
         while next_url:
+            self._guard_rate_limit()
             resp = self._http.get(next_url, params=next_params)
+            self._check_rate_limit(resp)
             resp.raise_for_status()
             data = resp.json()
             items = data["items"] if isinstance(data, dict) and "items" in data else data
@@ -66,6 +76,31 @@ class GithubClient:
 
     def viewer_login(self) -> str:
         """Return the login of the user whose token is being used."""
-        resp = self._http.get("/user")
+        resp = self.get("/user")
         resp.raise_for_status()
         return resp.json()["login"]
+
+    def _guard_rate_limit(self) -> None:
+        """Refuse to make a network call once a 403 has been seen."""
+        if self._rate_limited:
+            raise RateLimitExceededError(
+                "Refusing further requests: a previous call returned 403."
+            )
+
+    def _check_rate_limit(self, response: httpx.Response) -> None:
+        """Lock the client and raise if `response` is a 403."""
+        if response.status_code == 403:
+            self._rate_limited = True
+            raise RateLimitExceededError(self._extract_message(response))
+
+    @staticmethod
+    def _extract_message(response: httpx.Response) -> str:
+        """Build a human-readable message from a 403 response body."""
+        try:
+            body = response.json()
+            msg = body.get("message", "").strip()
+            if msg:
+                return f"GitHub returned 403: {msg}"
+        except (ValueError, AttributeError):
+            pass
+        return "GitHub returned 403"

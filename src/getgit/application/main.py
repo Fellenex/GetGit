@@ -18,6 +18,7 @@ from ..github import (
     GithubClient,
     GithubService,
     PullRequestProvider,
+    RateLimitExceededError,
     RepoProvider,
 )
 from .data import AppSettings
@@ -37,36 +38,43 @@ def run(settings: AppSettings) -> int:
         )
 
     github_settings = GithubSettings(auth_token=settings.access_token)
-    with GithubClient(github_settings) as client:
-        viewer = client.viewer_login()
-        is_self = viewer.lower() == settings.username.lower()
+    try:
+        with GithubClient(github_settings) as client:
+            viewer = client.viewer_login()
+            is_self = viewer.lower() == settings.username.lower()
 
-        print(
-            f"Viewer: {viewer} | Target: {settings.username} | Self: {is_self}",
-            file=sys.stderr,
-        )
+            print(
+                f"Viewer: {viewer} | Target: {settings.username} | Self: {is_self}",
+                file=sys.stderr,
+            )
 
-        github = GithubService(
-            repo_provider=RepoProvider(client),
-            pull_request_provider=PullRequestProvider(client),
-            commit_provider=CommitProvider(client),
-            settings=settings,
-        )
+            github = GithubService(
+                repo_provider=RepoProvider(client),
+                pull_request_provider=PullRequestProvider(client),
+                commit_provider=CommitProvider(client),
+                settings=settings,
+            )
 
-        repos = github.fetch_repositories(is_self=is_self)
-        print(f"Found {len(repos)} repos", file=sys.stderr)
+            repos = github.fetch_repositories(is_self=is_self)
+            print(f"Found {len(repos)} repos", file=sys.stderr)
 
-        pr_result = github.fetch_pull_requests()
-        print(
-            f"Found {len(pr_result.authored)} authored PRs, "
-            f"{len(pr_result.participated)} participated PRs, "
-            f"{len(pr_result.reviews)} reviews "
-            f"(indexed {len(pr_result.commit_pr_index)} commits)",
-            file=sys.stderr,
-        )
+            pr_result = github.fetch_pull_requests()
+            print(
+                f"Found {len(pr_result.authored)} authored PRs, "
+                f"{len(pr_result.participated)} participated PRs, "
+                f"{len(pr_result.reviews)} reviews "
+                f"(indexed {len(pr_result.commit_pr_index)} commits)",
+                file=sys.stderr,
+            )
 
-        commits = github.fetch_commits(repos=repos, pr_index=pr_result.commit_pr_index)
-        print(f"Found {len(commits)} commits", file=sys.stderr)
+            commits = github.fetch_commits(
+                repos=repos, pr_index=pr_result.commit_pr_index
+            )
+            print(f"Found {len(commits)} commits", file=sys.stderr)
+    except RateLimitExceededError as e:
+        print(f"Aborting: {e}", file=sys.stderr)
+        print("No report written. Try again later or use --max-* flags.", file=sys.stderr)
+        return 1
 
     report = AuthorshipReport(
         username=settings.username,
