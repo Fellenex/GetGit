@@ -1,0 +1,263 @@
+<mxfile host="app.diagrams.net" modified="2026-05-13" agent="GetGit/0.1.1" version="22.0.0" type="device">
+  <diagram name="Architecture" id="getgit-arch">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Column headers -->
+        <mxCell id="hdr-client" value="Client" style="text;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="0" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-endpoint" value="Endpoint" style="text;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="0" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-service" value="Service" style="text;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="0" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-repo" value="Repository" style="text;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="0" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-source" value="Source / Models" style="text;align=center;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="0" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Client column (blue) -->
+        <mxCell id="main_module" value="__main__.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_main" value="cli/main.py&#10;main()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="argument_parser" value="ArgumentParser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Endpoint column (green) -->
+        <mxCell id="application_run" value="application/main.py&#10;run()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="320" y="170" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="app_settings" value="AppSettings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="320" y="300" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Service column (red) -->
+        <mxCell id="github_service" value="GithubService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="600" y="170" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="report_exporter" value="ReportExporter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="600" y="300" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Repository column (purple) -->
+        <mxCell id="repo_fetcher" value="RepoFetcher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="880" y="40" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_fetcher" value="PullRequestFetcher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="880" y="170" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="commit_fetcher" value="CommitFetcher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="880" y="300" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="csv_writer" value="CsvWriter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="880" y="430" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="json_writer" value="JsonWriter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="880" y="560" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Source / Models column (orange for source, yellow for data) -->
+        <mxCell id="github_client" value="GithubClient" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="40" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="github_settings" value="GithubSettings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="170" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="writer" value="Writer (Protocol)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="300" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_fetch_result" value="PullRequestFetchResult" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="430" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="authorship_report" value="AuthorshipReport" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="560" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="commit" value="Commit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="690" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pull_request" value="PullRequest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="820" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="review" value="Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="950" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="json_model" value="JSONModel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="1080" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend_title" value="Legend" style="text;align=left;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_solid" value="solid arrow = uses / depends on" style="text;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1100" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_dashed" value="dashed arrow = inherits / implements" style="text;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1120" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_dashed_box" value="dashed box = Protocol / abstract" style="text;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1140" width="260" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Client column -->
+        <mxCell id="e1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="main_module" target="cli_main">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="cli_main" target="argument_parser">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="cli_main" target="application_run">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="argument_parser" target="app_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Endpoint -->
+        <mxCell id="e5" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="application_run" target="app_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="application_run" target="github_service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="application_run" target="report_exporter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.2;exitDx=0;exitDy=0;" edge="1" parent="1" source="application_run" target="github_client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.4;exitDx=0;exitDy=0;" edge="1" parent="1" source="application_run" target="github_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.6;exitDx=0;exitDy=0;" edge="1" parent="1" source="application_run" target="repo_fetcher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.8;exitDx=0;exitDy=0;" edge="1" parent="1" source="application_run" target="pr_fetcher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=1.0;exitDx=0;exitDy=0;" edge="1" parent="1" source="application_run" target="commit_fetcher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=0.7;exitY=1.0;exitDx=0;exitDy=0;" edge="1" parent="1" source="application_run" target="authorship_report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Service → Repository / Source -->
+        <mxCell id="e14" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="github_service" target="app_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.2;exitDx=0;exitDy=0;" edge="1" parent="1" source="github_service" target="repo_fetcher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="github_service" target="pr_fetcher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.8;exitDx=0;exitDy=0;" edge="1" parent="1" source="github_service" target="commit_fetcher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=0.3;exitY=1.0;exitDx=0;exitDy=0;" edge="1" parent="1" source="github_service" target="pr_fetch_result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=0.7;exitY=1.0;exitDx=0;exitDy=0;" edge="1" parent="1" source="github_service" target="commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e20" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="report_exporter" target="csv_writer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="report_exporter" target="json_writer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="report_exporter" target="authorship_report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Repository → Source -->
+        <mxCell id="e23" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="repo_fetcher" target="github_client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.3;exitDx=0;exitDy=0;" edge="1" parent="1" source="pr_fetcher" target="github_client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="pr_fetcher" target="pull_request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.7;exitDx=0;exitDy=0;" edge="1" parent="1" source="pr_fetcher" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e27" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.9;exitDx=0;exitDy=0;" edge="1" parent="1" source="pr_fetcher" target="pr_fetch_result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e28" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.3;exitDx=0;exitDy=0;" edge="1" parent="1" source="commit_fetcher" target="github_client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e29" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.7;exitDx=0;exitDy=0;" edge="1" parent="1" source="commit_fetcher" target="commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Writers → Writer protocol & JSONModel -->
+        <mxCell id="e30" style="endArrow=block;endFill=0;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.3;exitDx=0;exitDy=0;" edge="1" parent="1" source="csv_writer" target="writer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e31" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.7;exitDx=0;exitDy=0;" edge="1" parent="1" source="csv_writer" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e32" style="endArrow=block;endFill=0;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.3;exitDx=0;exitDy=0;" edge="1" parent="1" source="json_writer" target="writer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e33" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.7;exitDx=0;exitDy=0;" edge="1" parent="1" source="json_writer" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: Source intra-column -->
+        <mxCell id="e34" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="writer" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e35" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="github_client" target="github_settings">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e36" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="pr_fetch_result" target="pull_request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e37" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="pr_fetch_result" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e38" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="authorship_report" target="commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e39" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="authorship_report" target="pull_request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e40" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="authorship_report" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e41" style="endArrow=block;endFill=0;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="authorship_report" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e42" style="endArrow=block;endFill=0;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="commit" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e43" style="endArrow=block;endFill=0;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="pull_request" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e44" style="endArrow=block;endFill=0;dashed=1;html=1;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="review" target="json_model">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

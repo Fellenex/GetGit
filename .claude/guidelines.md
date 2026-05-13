@@ -83,6 +83,19 @@ Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB o
 - **Source is organized by domain**, not by technical layer. Each domain is a folder under `src/getgit/` with an `__init__.py` that re-exports the public types. Current domains: `authentication/`, `cli/`, `fetchers/`, `github_api/`, `models/`. Single-file utilities (e.g. `storage.py`) stay top-level until they grow a class to organize.
 - Prefer editing existing files over creating new ones.
 
+## Architecture diagram
+
+A `.drawio` dependency diagram lives at [`docs/architecture.drawio`](../docs/architecture.drawio). It shows every source file/class as a box, organized in left-to-right columns: **Client → Endpoint → Service → Repository → Source / Models**.
+
+**Update cadence:** the diagram is refreshed only when a new `git tag` is cut (e.g. `v0.1.2`, `v0.2.0`), not on every commit. Updating it per commit would be expensive upkeep relative to the value, and most readers care about the architecture as it stood at a release boundary. When tagging a new version:
+
+1. Open `docs/architecture.drawio` in [diagrams.net](https://app.diagrams.net) (or any drawio editor).
+2. Add/remove boxes and arrows so the diagram matches the current source tree.
+3. Re-verify the layout constraints — every box ≥80px from its neighbours, no arrow overlaps any box or other arrow, columns left-to-right by responsibility.
+4. Commit the updated diagram in the same commit as the version bump (the one being tagged).
+
+If you discover the diagram is stale mid-cycle (something already shipped that isn't reflected), wait for the next tag — don't rush a one-off update.
+
 ## Recording architectural decisions
 
 Every architectural decision must be appended to the "Architectural decisions" section below. An "architectural decision" includes:
