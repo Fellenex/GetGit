@@ -1,7 +1,7 @@
 """Application domain — UI-agnostic orchestration and runtime configuration."""
 
-from .checkpoint_store import CheckpointStore
-from .data import AppSettings, Checkpoint
+from .data import AppSettings, UserState
 from .main import run
+from .user_state_store import UserStateStore
 
-__all__ = ["AppSettings", "Checkpoint", "CheckpointStore", "run"]
+__all__ = ["AppSettings", "UserState", "UserStateStore", "run"]

@@ -14,9 +14,12 @@ Operator supplies a PAT and a target username. Runs locally; writes JSON + CSV t
 - **v0.1.0** — download own (public + private) data via console.
 - **v0.2.0** — hardening release: tests, rate-limit handling, verify the stranger-public-data path end-to-end.
 - **v0.3.0** — dockerize so a single `docker compose up` produces the output files.
+- **v0.4.0** — periodic ("cron") runs that incrementally build a user's history over time. Each invocation is bounded (rate-limit-friendly) and resumable via the per-user `UserState` checkpoint. Builds on the v0.3.0 Docker image plus an external scheduler (system cron / Task Scheduler / `docker compose` + cron container).
 
 ### Phase 2 — Local web wrapper
 FastAPI + GitHub OAuth running on the operator's machine. Any logged-in user can pull their own data (public + private) or anyone else's public data.
+
+**Open question — scheduling parity with v0.4.0:** the cron pattern from v0.4.0 needs a translation in the web version. Candidates: a server-side scheduler (Celery, APScheduler, or FastAPI's lifespan + `asyncio.create_task` for in-process intervals); GitHub Actions firing at our HTTP endpoint on a schedule; per-user opt-in subscriptions persisted to a DB and dispatched by a worker. Decide before adding scheduling to phase 2; the chosen mechanism likely shapes the phase-3 multi-tenant runtime too.
 
 ### Phase 3 — Cloud-deployed, web-accessible
 Hosted FastAPI service reachable at a public URL. Any GitHub user can sign in and pull data without installing anything. Introduces multi-tenant concerns (per-user token storage, persistent results storage, isolation between users, abuse/quota controls) that don't exist in phase 2.

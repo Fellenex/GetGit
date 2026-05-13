@@ -1,6 +1,6 @@
 """Application-domain data classes — passive carriers, no behavior."""
 
 from .app_settings import AppSettings
-from .checkpoint import Checkpoint
+from .user_state import UserState
 
-__all__ = ["AppSettings", "Checkpoint"]
+__all__ = ["AppSettings", "UserState"]

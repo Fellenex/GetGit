@@ -23,8 +23,8 @@ from ..github import (
     RateLimitExceededError,
     RepoProvider,
 )
-from .checkpoint_store import CheckpointStore
-from .data import AppSettings, Checkpoint
+from .data import AppSettings, UserState
+from .user_state_store import UserStateStore
 
 
 def run(settings: AppSettings) -> int:
@@ -39,7 +39,7 @@ def run(settings: AppSettings) -> int:
     failing fast here beats discovering it mid-scrape via a 401 from
     GitHub.
 
-    A per-username checkpoint at `<out_dir>/<username>/state.json`
+    A per-username `UserState` at `<out_dir>/<username>/state.json`
     tracks watermarks across runs. The next run's PR search and
     per-repo commit listings are constrained to data updated since
     those watermarks. On a complete run the watermarks advance to the
@@ -54,9 +54,9 @@ def run(settings: AppSettings) -> int:
         )
 
     started_at = datetime.now(timezone.utc)
-    checkpoint_store = CheckpointStore(settings.out_dir, settings.username)
-    checkpoint = checkpoint_store.load()
-    print(_describe_resume(checkpoint), file=sys.stderr)
+    state_store = UserStateStore(settings.out_dir, settings.username)
+    state = state_store.load()
+    print(_describe_resume(state), file=sys.stderr)
 
     repos: list[dict] = []
     pr_result = PullRequestFetchResult()
@@ -85,7 +85,7 @@ def run(settings: AppSettings) -> int:
             print(f"Found {len(repos)} repos", file=sys.stderr)
 
             pr_result = github.fetch_pull_requests(
-                since=checkpoint.pr_search_updated_since
+                since=state.pr_search_updated_since
             )
             print(
                 f"Found {len(pr_result.authored)} authored PRs, "
@@ -98,7 +98,7 @@ def run(settings: AppSettings) -> int:
             commits = github.fetch_commits(
                 repos=repos,
                 pr_index=pr_result.commit_pr_index,
-                since_per_repo=checkpoint.commits_per_repo,
+                since_per_repo=state.commits_per_repo,
             )
             print(f"Found {len(commits)} commits", file=sys.stderr)
     except RateLimitExceededError as e:
@@ -119,33 +119,33 @@ def run(settings: AppSettings) -> int:
     for label, p in paths.items():
         print(f"Wrote {label}: {p}")
 
-    new_checkpoint = _next_checkpoint(checkpoint, pr_result, commits, started_at, partial)
-    checkpoint_path = checkpoint_store.save(new_checkpoint)
-    print(f"Updated checkpoint: {checkpoint_path}", file=sys.stderr)
+    new_state = _next_state(state, pr_result, commits, started_at, partial)
+    state_path = state_store.save(new_state)
+    print(f"Updated user state: {state_path}", file=sys.stderr)
 
     return 2 if partial else 0
 
 
-def _describe_resume(checkpoint: Checkpoint) -> str:
+def _describe_resume(state: UserState) -> str:
     """Render a one-line summary of where this run picks up from."""
-    if checkpoint.last_run_status == "never":
-        return "Checkpoint: first run for this user."
-    base = f"Checkpoint: last run {checkpoint.last_run_status} at {checkpoint.last_run_at}"
-    if checkpoint.pr_search_updated_since:
-        base += f"; PRs updated since {checkpoint.pr_search_updated_since}"
-    if checkpoint.commits_per_repo:
-        base += f"; {len(checkpoint.commits_per_repo)} repos with commit watermarks"
+    if state.last_run_status == "never":
+        return "UserState: first run for this user."
+    base = f"UserState: last run {state.last_run_status} at {state.last_run_at}"
+    if state.pr_search_updated_since:
+        base += f"; PRs updated since {state.pr_search_updated_since}"
+    if state.commits_per_repo:
+        base += f"; {len(state.commits_per_repo)} repos with commit watermarks"
     return base + "."
 
 
-def _next_checkpoint(
-    previous: Checkpoint,
+def _next_state(
+    previous: UserState,
     pr_result: PullRequestFetchResult,
     commits: list[Commit],
     started_at: datetime,
     partial: bool,
-) -> Checkpoint:
-    """Compute the next checkpoint to persist.
+) -> UserState:
+    """Compute the next `UserState` to persist.
 
     On a complete run we advance watermarks to the newest data we
     collected. On a partial run we keep the previous watermarks so
@@ -154,7 +154,7 @@ def _next_checkpoint(
     the oldest item we managed to collect this time.
     """
     if partial:
-        return Checkpoint(
+        return UserState(
             pr_search_updated_since=previous.pr_search_updated_since,
             commits_per_repo=dict(previous.commits_per_repo),
             last_run_at=started_at,
@@ -163,7 +163,7 @@ def _next_checkpoint(
 
     pr_watermark = _max_pr_updated_at(pr_result, previous.pr_search_updated_since)
     commits_watermark = _merge_commit_watermarks(previous.commits_per_repo, commits)
-    return Checkpoint(
+    return UserState(
         pr_search_updated_since=pr_watermark,
         commits_per_repo=commits_watermark,
         last_run_at=started_at,
