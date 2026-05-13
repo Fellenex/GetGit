@@ -1,9 +1,9 @@
-"""Tests for the report exporter — orchestration on top of the writers."""
+"""Tests for ReportService — orchestration on top of the writers."""
 
 from datetime import datetime, timezone
 from pathlib import Path
 
-from getgit.exporting import ReportExporter
+from getgit.exporting import ReportService
 from getgit.github import AuthorshipReport, Commit, PullRequest, Review
 
 
@@ -61,7 +61,7 @@ def _sample_report() -> AuthorshipReport:
 
 def test_write_report_emits_a_json_and_csv_per_collection(tmp_path: Path):
     """Each top-level collection should produce both a JSON and a CSV file."""
-    paths = ReportExporter().write_report(_sample_report(), tmp_path)
+    paths = ReportService().write_report(_sample_report(), tmp_path)
 
     assert set(paths) == {
         "commits_json",
@@ -79,7 +79,7 @@ def test_write_report_emits_a_json_and_csv_per_collection(tmp_path: Path):
 
 def test_files_land_in_per_run_subdirectory(tmp_path: Path):
     """Output goes to `<out>/<username>/<generated_at>/<collection>.<format>`."""
-    paths = ReportExporter().write_report(_sample_report(), tmp_path)
+    paths = ReportService().write_report(_sample_report(), tmp_path)
 
     expected_dir = tmp_path / "u" / "2026-05-12_T00-00-00"
     assert paths["commits_json"] == expected_dir / "commits.json"
@@ -89,7 +89,7 @@ def test_files_land_in_per_run_subdirectory(tmp_path: Path):
 
 def test_collection_filenames_no_longer_carry_username_prefix(tmp_path: Path):
     """The username/timestamp metadata lives in the path, not the filename."""
-    paths = ReportExporter().write_report(_sample_report(), tmp_path)
+    paths = ReportService().write_report(_sample_report(), tmp_path)
 
     assert paths["commits_json"].name == "commits.json"
     assert paths["reviews_csv"].name == "reviews.csv"

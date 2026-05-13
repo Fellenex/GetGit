@@ -1,13 +1,13 @@
-"""Orchestrates writing an `AuthorshipReport` to disk via the `Writer` protocol."""
+"""Orchestrates writing an `AuthorshipReport` to disk via the writers."""
 
 from pathlib import Path
 
-from ..github import AuthorshipReport
-from .csv_writer import CsvWriter
-from .json_file_handler import JSONFileHandler
+from ...github import AuthorshipReport
+from ..csv_writer import CsvWriter
+from ..json_file_handler import JSONFileHandler
 
 
-class ReportExporter:
+class ReportService:
     """Writes an `AuthorshipReport` as one JSON and one CSV per top-level collection.
 
     Owns one `JSONFileHandler` and one `CsvWriter` and dispatches to

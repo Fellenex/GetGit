@@ -38,14 +38,19 @@ src/getgit/
 │   └── user_state_store.py
 ├── authentication/        # GithubSettings (auth_token, base_url, timeout)
 ├── cli/                   # ArgumentParser, main()
-├── exporting/             # Writer protocol; CsvWriter, JsonWriter, ReportExporter
+├── exporting/             # Writers + JSON file handler + report orchestration
+│   ├── interfaces/        #   Writer protocol
+│   ├── services/          #   ReportService
+│   ├── csv_writer.py      #   CsvWriter
+│   └── json_file_handler.py
 ├── github/                # Everything GitHub-specific
 │   ├── clients/           #   GithubClient, RateLimitExceededError
 │   ├── data/              #   Commit, PullRequest, Review, AuthorshipReport, PullRequestFetchResult
 │   ├── providers/         #   CommitProvider, PullRequestProvider, RepoProvider
 │   └── services/          #   GithubService (facade over the providers)
 └── infrastructure/        # Cross-cutting building blocks
-    └── data/              #   JSONModel
+    ├── data/              #   JSONModel
+    └── dates/             #   IsoDateParser
 ```
 
 ### Authentication

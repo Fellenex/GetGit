@@ -11,7 +11,7 @@ import sys
 from datetime import datetime, timezone
 
 from ..authentication import GithubSettings
-from ..exporting import JSONFileHandler, ReportExporter
+from ..exporting import JSONFileHandler, ReportService
 from ..github import (
     AuthorshipReport,
     Commit,
@@ -117,7 +117,7 @@ def run(settings: AppSettings) -> int:
         participated_pull_requests=pr_result.participated,
         reviews=pr_result.reviews,
     )
-    paths = ReportExporter().write_report(report, settings.out_dir)
+    paths = ReportService().write_report(report, settings.out_dir)
     for label, p in paths.items():
         print(f"Wrote {label}: {p}")
 
