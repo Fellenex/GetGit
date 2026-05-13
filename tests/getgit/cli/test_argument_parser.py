@@ -48,3 +48,21 @@ def test_username_is_required():
     """Calling parse with no args should fail — username is positional and required."""
     with pytest.raises(SystemExit):
         ArgumentParser().parse([])
+
+
+def test_access_token_read_from_env(monkeypatch):
+    """`access_token` should be populated from the GITHUB_TOKEN env var."""
+    monkeypatch.setenv("GITHUB_TOKEN", "ghp_xyz")
+
+    settings = ArgumentParser().parse(["alice"])
+
+    assert settings.access_token == "ghp_xyz"
+
+
+def test_access_token_is_none_when_env_missing(monkeypatch):
+    """Missing env var should produce `access_token=None`; validation happens later in run()."""
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    settings = ArgumentParser().parse(["alice"])
+
+    assert settings.access_token is None

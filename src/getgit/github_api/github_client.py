@@ -4,20 +4,30 @@ from typing import Iterator
 
 import httpx
 
+from ..authentication import GithubSettings
+
 
 class GithubClient:
-    """Thin wrapper over `httpx.Client` adding GitHub-aware helpers.
+    """GitHub REST client with auth, pagination, and viewer-identity helpers.
 
-    Owns the lifecycle of an HTTP client (works as a context manager)
-    and exposes the small set of operations every fetcher needs:
-    `get`, `paginate`, and `viewer_login`. Auth headers and base URL
-    are baked into the underlying `httpx.Client` by the `Auth` layer
-    before we receive it.
+    Built from a `GithubSettings` so the constructor encapsulates the
+    auth-header wiring. Acts as a context manager — opens its
+    underlying `httpx.Client` on `__enter__` and closes it on
+    `__exit__`.
     """
 
-    def __init__(self, http: httpx.Client):
-        """Wrap a pre-authenticated `httpx.Client`."""
-        self._http = http
+    def __init__(self, settings: GithubSettings):
+        """Build the underlying `httpx.Client` from `settings`."""
+        self._http = httpx.Client(
+            base_url=settings.base_url,
+            headers={
+                "Authorization": f"Bearer {settings.auth_token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "User-Agent": "GetGit/0.1",
+            },
+            timeout=settings.timeout,
+        )
 
     def __enter__(self) -> "GithubClient":
         """Enter the underlying HTTP client's context."""
@@ -55,7 +65,7 @@ class GithubClient:
             next_params = None
 
     def viewer_login(self) -> str:
-        """Return the login of the user whose PAT is being used."""
+        """Return the login of the user whose token is being used."""
         resp = self._http.get("/user")
         resp.raise_for_status()
         return resp.json()["login"]

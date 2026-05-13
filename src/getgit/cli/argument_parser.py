@@ -1,6 +1,7 @@
 """CLI argument parsing — wraps argparse and produces an `AppSettings`."""
 
 import argparse
+import os
 from pathlib import Path
 
 from ..application import AppSettings
@@ -45,7 +46,13 @@ class ArgumentParser:
         self._parser = parser
 
     def parse(self, argv: list[str] | None = None) -> AppSettings:
-        """Parse `argv` (or `sys.argv` when `None`) and return an `AppSettings`."""
+        """Parse `argv` (or `sys.argv` when `None`) and return an `AppSettings`.
+
+        The GitHub access token comes from the `GITHUB_TOKEN` env var —
+        the CLI is the only entry point that reads it from the
+        environment. Phase 2's HTTP entry point will populate
+        `access_token` from the OAuth flow instead.
+        """
         ns = self._parser.parse_args(argv)
         return AppSettings(
             username=ns.username,
@@ -53,4 +60,5 @@ class ArgumentParser:
             max_commits=ns.max_commits,
             max_prs=ns.max_prs,
             fetch_extensions=not ns.no_extension_breakdown,
+            access_token=os.environ.get("GITHUB_TOKEN"),
         )

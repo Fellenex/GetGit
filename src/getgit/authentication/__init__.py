@@ -1,6 +1,5 @@
-"""Authentication domain — strategies for authenticating against GitHub."""
+"""Authentication domain — configuration for talking to GitHub."""
 
-from .auth import Auth
-from .personal_token_auth import PersonalTokenAuth
+from .github_settings import GithubSettings
 
-__all__ = ["Auth", "PersonalTokenAuth"]
+__all__ = ["GithubSettings"]

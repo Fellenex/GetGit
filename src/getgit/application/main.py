@@ -10,8 +10,9 @@ this module.
 import sys
 from datetime import datetime, timezone
 
-from ..authentication import PersonalTokenAuth
+from ..authentication import GithubSettings
 from ..fetchers import CommitFetcher, PullRequestFetcher, RepoFetcher
+from ..github_api import GithubClient
 from ..models import AuthorshipReport
 from ..storage import write_report
 from .app_settings import AppSettings
@@ -20,13 +21,18 @@ from .app_settings import AppSettings
 def run(settings: AppSettings) -> int:
     """Execute the full scrape and write the report to disk.
 
-    Returns a process-style exit code (`0` on success). The orchestration
-    is deliberately printf-based for now: phase 2 will swap stderr
-    breadcrumbs for structured logging once there's a non-CLI consumer
-    that benefits from it.
+    Returns a process-style exit code (`0` on success). Raises
+    `RuntimeError` if `settings.access_token` is missing — failing fast
+    here beats discovering it mid-scrape via a 401 from GitHub.
     """
-    auth = PersonalTokenAuth()
-    with auth.client() as client:
+    if not settings.access_token:
+        raise RuntimeError(
+            "No GitHub access token in AppSettings. "
+            "Set GITHUB_TOKEN (CLI) or supply an OAuth token (web)."
+        )
+
+    github_settings = GithubSettings(auth_token=settings.access_token)
+    with GithubClient(github_settings) as client:
         viewer = client.viewer_login()
         is_self = viewer.lower() == settings.username.lower()
 

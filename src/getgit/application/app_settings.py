@@ -20,3 +20,4 @@ class AppSettings:
     max_commits: int | None
     max_prs: int | None
     fetch_extensions: bool
+    access_token: str | None
