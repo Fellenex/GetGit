@@ -224,6 +224,11 @@ If a prior decision is reversed, update the original entry with a `**Reversed YY
 **Alternatives:** alphabetical ordering; helpers above their callers (a la C); no rule.
 **Why:** reading top-to-bottom should answer "what does this thing do?" before "how does it do it?". This also localizes the public API at a glance without scanning past helpers.
 
+### 2026-05-12 — Manual constructor DI now; FastAPI `Depends` in phase 2/3
+**Decision:** dependency injection is manual constructor injection in phase 1 — `Fetcher(client)`, wired once inside `cli._run`. When the FastAPI layer lands in phase 2, request-scoped collaborators (the `GithubClient`, the per-request token, eventually a session/DB handle) move to `fastapi.Depends` providers. No standalone DI container (e.g. `dependency-injector`, `injector`, `punq`) until the wiring graph genuinely outgrows what `Depends` handles cleanly.
+**Alternatives:** adopt `dependency-injector` now to "future-proof" the wiring; lean on `punq` as a lightweight middle ground; keep manual injection forever.
+**Why:** there are ~4 collaborators today and they wire up in one place, so a container would be pure ceremony. `fastapi.Depends` is the de facto DI mechanism for any FastAPI app — using it means our DI surface is already part of a framework the team will know, not a parallel system to learn. A dedicated container only wins past ~15+ services with multiple environment-specific implementations; we'll revisit if phase 3 gets there.
+
 ### 2026-05-12 — Load secrets from `.env` via python-dotenv
 **Decision:** `cli.py` calls `load_dotenv()` at startup. `.env` is gitignored; `.env.example` is committed as a template. Code still reads from `os.environ` — `.env` only populates the environment, it is never parsed directly by application code.
 **Alternatives:** require operators to `export` env vars manually; build a custom config loader; use Pydantic Settings.
