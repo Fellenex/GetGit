@@ -77,6 +77,7 @@ Local file output today (JSON + CSV). Phase 3 will need a persistent store (DB o
 - Default to no inline comments. Add one only when the *why* is non-obvious.
 - **Every function and class gets a docstring.** Even one-liners. State *what* it does and, when it isn't obvious, *why*. Document non-trivial parameters and return shapes. Module-level docstrings are encouraged when a file's role isn't clear from its name.
 - **Public methods/functions appear above private ones** (`_`-prefixed) in every file. Reading top-to-bottom should walk the public surface first, then drop into helpers.
+- **Module-level helpers belong inside the class they support.** If a function or constant only exists to serve one class in the same file, it lives on that class as a `_`-prefixed method (`@staticmethod`/`@classmethod` when it doesn't need `self`) or class-level constant. Keeps the public surface = the class.
 - **One class per file.** A file may contain module-level helper functions or constants that support its class, but never two classes.
 - **Filenames mirror their class name** in `snake_case`. `AppSettings` lives in `app_settings.py`; `JSONModel` in `json_model.py`. The matching is mechanical so nothing is hidden.
 - **Source is organized by domain**, not by technical layer. Each domain is a folder under `src/getgit/` with an `__init__.py` that re-exports the public types. Current domains: `authentication/`, `cli/`, `fetchers/`, `github_api/`, `models/`. Single-file utilities (e.g. `storage.py`) stay top-level until they grow a class to organize.

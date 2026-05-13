@@ -8,12 +8,12 @@ from ..github_api import GithubClient
 from ..models import PullRequest, Review
 from .pull_request_fetch_result import PullRequestFetchResult
 
-JIRA_RE = re.compile(r"\b[A-Z]{2,10}-\d+\b")
-"""Matches JIRA-style ticket codes (e.g. WD-6000, YWFB-300, PTR-8000)."""
-
 
 class PullRequestFetcher:
     """Collects PRs (authored + participated), reviews, and a commit→PR index."""
+
+    _JIRA_RE = re.compile(r"\b[A-Z]{2,10}-\d+\b")
+    """Matches JIRA-style ticket codes (e.g. WD-6000, YWFB-300, PTR-8000)."""
 
     def __init__(self, client: GithubClient):
         """Bind to a `GithubClient` for all subsequent calls."""
@@ -44,7 +44,7 @@ class PullRequestFetcher:
         ):
             if limit is not None and len(out.authored) >= limit:
                 break
-            repo_full = _key_from_repo_url(issue["repository_url"])
+            repo_full = self._key_from_repo_url(issue["repository_url"])
             number = issue["number"]
             authored_keys.add((repo_full, number))
 
@@ -76,7 +76,9 @@ class PullRequestFetcher:
         """Run a /search/issues query and collect `(repo, number)` tuples."""
         keys: set[tuple[str, int]] = set()
         for issue in self._client.paginate("/search/issues", {"q": query}):
-            keys.add((_key_from_repo_url(issue["repository_url"]), issue["number"]))
+            keys.add(
+                (self._key_from_repo_url(issue["repository_url"]), issue["number"])
+            )
         return keys
 
     def _hydrate_pr(
@@ -109,13 +111,13 @@ class PullRequestFetcher:
             repo=repo_full,
             title=pr["title"],
             merged=bool(pr.get("merged_at")),
-            created_at=_parse_dt(pr["created_at"]),
-            closed_at=_parse_dt(pr.get("closed_at")),
+            created_at=self._parse_dt(pr["created_at"]),
+            closed_at=self._parse_dt(pr.get("closed_at")),
             additions=additions,
             deletions=deletions,
             comments=pr.get("comments", 0) + pr.get("review_comments", 0),
             comments_by_author=issue_comments_by_user + review_comments_by_user,
-            jira_codes=_extract_jira_codes(
+            jira_codes=self._extract_jira_codes(
                 pr.get("title"), pr.get("body"), (pr.get("head") or {}).get("ref")
             ),
         )
@@ -134,7 +136,7 @@ class PullRequestFetcher:
         additions: dict[str, int] = {}
         deletions: dict[str, int] = {}
         for raw in self._client.paginate(f"/repos/{repo_full}/pulls/{number}/files"):
-            ext = _file_extension(raw["filename"])
+            ext = self._file_extension(raw["filename"])
             a = raw.get("additions", 0)
             d = raw.get("deletions", 0)
             if a:
@@ -167,7 +169,7 @@ class PullRequestFetcher:
                     pr_number=number,
                     index=idx,
                     state=raw.get("state", ""),
-                    submitted_at=_parse_dt(raw.get("submitted_at")),
+                    submitted_at=self._parse_dt(raw.get("submitted_at")),
                     body=raw.get("body") or "",
                 )
             )
@@ -180,45 +182,45 @@ class PullRequestFetcher:
         for c in self._client.paginate(f"/repos/{repo_full}/pulls/{number}/commits"):
             index[(repo_full, c["sha"])] = number
 
+    @classmethod
+    def _extract_jira_codes(cls, *texts: str | None) -> dict[str, list[str]]:
+        """Pull JIRA codes from any number of text blobs and bucket by project prefix.
 
-def _extract_jira_codes(*texts: str | None) -> dict[str, list[str]]:
-    """Pull JIRA codes from any number of text blobs and bucket by project prefix.
+        Returns a dict keyed by project prefix (e.g. `"WD"`) with a
+        sorted, deduped list of full codes (`["WD-1234", "WD-5678"]`).
+        Outer key order is alphabetical for determinism. An input with
+        no codes yields an empty dict.
+        """
+        found: set[str] = set()
+        for text in texts:
+            if text:
+                found.update(cls._JIRA_RE.findall(text))
+        grouped: dict[str, list[str]] = {}
+        for code in sorted(found):
+            prefix = code.split("-", 1)[0]
+            grouped.setdefault(prefix, []).append(code)
+        return grouped
 
-    Returns a dict keyed by project prefix (e.g. `"WD"`) with a sorted,
-    deduped list of full codes (`["WD-1234", "WD-5678"]`). Outer key
-    order is alphabetical for determinism. An input with no codes
-    yields an empty dict.
-    """
-    found: set[str] = set()
-    for text in texts:
-        if text:
-            found.update(JIRA_RE.findall(text))
-    grouped: dict[str, list[str]] = {}
-    for code in sorted(found):
-        prefix = code.split("-", 1)[0]
-        grouped.setdefault(prefix, []).append(code)
-    return grouped
+    @staticmethod
+    def _parse_dt(s: str | None) -> datetime | None:
+        """Parse a GitHub ISO-8601 timestamp, returning None if the input is missing."""
+        if not s:
+            return None
+        return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
+    @staticmethod
+    def _file_extension(filename: str) -> str:
+        """Return the file extension (with dot), or the bare basename if there is none.
 
-def _parse_dt(s: str | None) -> datetime | None:
-    """Parse a GitHub ISO-8601 timestamp, returning None if the input is missing."""
-    if not s:
-        return None
-    return datetime.fromisoformat(s.replace("Z", "+00:00"))
+        Falls back to the full basename so extensionless files like
+        `Dockerfile`, `Makefile`, or `.gitignore` get a meaningful key
+        instead of all collapsing into a single `""` bucket in the
+        additions/deletions dict.
+        """
+        path = PurePosixPath(filename)
+        return path.suffix or path.name
 
-
-def _file_extension(filename: str) -> str:
-    """Return the file extension (with dot), or the bare basename if there is none.
-
-    Falls back to the full basename so extensionless files like
-    `Dockerfile`, `Makefile`, or `.gitignore` get a meaningful key
-    instead of all collapsing into a single `""` bucket in the
-    additions/deletions dict.
-    """
-    path = PurePosixPath(filename)
-    return path.suffix or path.name
-
-
-def _key_from_repo_url(repo_url: str) -> str:
-    """Convert `https://api.github.com/repos/owner/repo` → `owner/repo`."""
-    return "/".join(repo_url.rsplit("/", 2)[-2:])
+    @staticmethod
+    def _key_from_repo_url(repo_url: str) -> str:
+        """Convert `https://api.github.com/repos/owner/repo` → `owner/repo`."""
+        return "/".join(repo_url.rsplit("/", 2)[-2:])
