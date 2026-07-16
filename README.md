@@ -49,7 +49,7 @@ getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension
 | `--no-extension-breakdown` | Skip the per-file API call; store totals only under the `"*"` key. Saves one paginated call per PR. |
 | `--repo OWNER/NAME` | Scope the scrape to a single repo. Skips repo discovery; PR searches gain `repo:OWNER/NAME`; commits are listed only for that repo. |
 
-When `<username>` matches the authenticated user, both public and private repos are scanned. Otherwise only public data is returned.
+When `<username>` matches the authenticated user, repo discovery covers everything the PAT can see — repos you own, repos you collaborate on, and repos owned by organizations you belong to (e.g. a company org), public and private alike. This is what lets commits in an org's repos be collected. Note the PAT must be authorized for the org: for a private org repo behind SAML/SSO, a classic PAT needs "Configure SSO" authorization and a fine-grained PAT needs the org to grant it access — otherwise those repos are invisible to the token and a `repo:`-scoped search against one returns a 422. When `<username>` is someone else, only public repos they own are scanned.
 
 ## Output
 

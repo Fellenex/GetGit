@@ -59,7 +59,7 @@ src/getgit/
 
 ### Self vs stranger scope
 
-The only client-side difference between scraping yourself and scraping a stranger lives in `RepoProvider.list_repos(username, is_self=...)`: `is_self=True` calls `/user/repos`, `False` calls `/users/{u}/repos`. Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
+The only client-side difference between scraping yourself and scraping a stranger lives in `RepoProvider.list_repos(username, is_self=...)`: `is_self=True` calls `/user/repos` with `affiliation=owner,collaborator,organization_member` (so org-owned and collaborator repos are discovered, not just owned ones — see [ADR-046]), `False` calls `/users/{u}/repos` (public owned repos only). Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
 
 ### Providers (the `github/providers/` domain)
 
