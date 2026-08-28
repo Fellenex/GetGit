@@ -13,8 +13,8 @@ Operator supplies a PAT and a target username. Runs locally; writes JSON + CSV t
 
 - **v0.1.0** — download own (public + private) data via console.
 - **v0.2.0** — hardening release: tests, rate-limit handling, verify the stranger-public-data path end-to-end.
-- **v0.3.0** — dockerize so a single `docker compose up` produces the output files.
-- **v0.4.0** — periodic ("cron") runs that incrementally build a user's history over time. Each invocation is bounded (rate-limit-friendly) and resumable via the per-user `UserState` checkpoint. Builds on the v0.3.0 Docker image plus an external scheduler (system cron / Task Scheduler / `docker compose` + cron container).
+- **v0.3.0** — dockerize so a single `docker compose up` produces the output files. This is a *packaging/reproducibility* milestone (no local Python/venv setup for the operator), independent of scheduling; the container mounts `output/` as a volume so a run's files land on the host.
+- **v0.4.0** — periodic ("cron") runs that incrementally build a user's history over time. Each invocation is bounded (rate-limit-friendly) and resumable via the per-user `UserState` checkpoint. **Baseline is host cron** (or Task Scheduler) firing a dedicated bounded `task` target — the checkpoint is already an on-disk file, so nothing extra is needed to persist state between runs. The v0.3.0 Docker image is an *optional* deployment variant, not a prerequisite; running the scheduled scrape in a container is where the mounted `output/` volume matters (see [ADR-050]). Does **not** reuse the uncapped `startup` task — a cron target needs its own tuned caps so one run fits inside a rate-limit window.
 
 ### Phase 2 — Local web wrapper
 FastAPI + GitHub OAuth running on the operator's machine. Any logged-in user can pull their own data (public + private) or anyone else's public data.
