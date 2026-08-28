@@ -26,9 +26,13 @@ class CommitProvider:
         """Collect commits authored by `username` across `repos`.
 
         Uses `/repos/{full_name}/commits?author=...`, which avoids the
-        /search/commits rate cap. Empty repos return 409 and are
-        skipped; repos that 404 (deleted or now-private) are also
-        skipped.
+        /search/commits rate cap. Per-repo failures are skipped so one
+        bad repo never derails the walk: empty repos return 409, deleted
+        or now-private repos return 404, and repos the PAT can't access
+        (e.g. an org repo behind SAML SSO enforcement — reachable since
+        self runs discover org repos) return 403. A rate-limit 403 is
+        distinct: the client raises `RateLimitExceededError` for those,
+        which aborts the walk.
 
         `since_per_repo` maps `owner/name` → datetime; when present for
         a repo, the call adds `since=<...>` to skip commits already
@@ -58,7 +62,13 @@ class CommitProvider:
                         if limit is not None and len(commits) >= limit:
                             break
                 except httpx.HTTPStatusError as e:
-                    if e.response.status_code in (404, 409):
+                    # Per-repo conditions — skip this repo, keep walking:
+                    #   404 = deleted or now-private, 409 = empty repo,
+                    #   403 = access denied for this repo (e.g. an org repo
+                    #   behind SAML SSO the PAT isn't authorized for). A
+                    #   genuine rate-limit 403 never reaches here — the client
+                    #   raises RateLimitExceededError for those and aborts.
+                    if e.response.status_code in (403, 404, 409):
                         continue
                     raise
             return commits

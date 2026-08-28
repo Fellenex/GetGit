@@ -9,8 +9,8 @@ from _support.github import FakeGithubClient
 from getgit.github import GithubClient, RateLimitExceededError, RepoProvider
 
 
-def test_self_path_uses_user_repos_with_owner_affiliation():
-    """is_self=True hits /user/repos with affiliation+visibility filters."""
+def test_self_path_uses_user_repos_with_owner_collaborator_and_org_affiliation():
+    """is_self=True hits /user/repos covering owned, collaborator, and org-member repos."""
     client = FakeGithubClient(default_items=[{"full_name": "me/r"}])
 
     out = RepoProvider(client).list_repos("me", is_self=True)
@@ -18,7 +18,10 @@ def test_self_path_uses_user_repos_with_owner_affiliation():
     assert out == [{"full_name": "me/r"}]
     assert client.last_call == (
         "/user/repos",
-        {"affiliation": "owner", "visibility": "all"},
+        {
+            "affiliation": "owner,collaborator,organization_member",
+            "visibility": "all",
+        },
     )
 
 

@@ -21,32 +21,39 @@ def _client_with(responses: list[httpx.Response]) -> GithubClient:
     return client
 
 
-def _resp(payload, status: int = 200) -> httpx.Response:
+def _resp(payload, status: int = 200, headers: dict | None = None) -> httpx.Response:
     """Build a real `httpx.Response` (with a request so raise_for_status works)."""
     return httpx.Response(
-        status, json=payload, request=httpx.Request("GET", "/")
+        status, json=payload, headers=headers or {}, request=httpx.Request("GET", "/")
     )
 
 
+# A genuine rate-limit 403 carries the exhausted-quota header; that header is
+# what tells `GithubClient` to lock and abort (vs. a per-resource access 403).
+_RATE_LIMITED = {"X-RateLimit-Remaining": "0"}
+
+
 def test_paginate_raises_on_first_403():
-    """A 403 mid-paginate should raise RateLimitExceededError immediately."""
-    c = _client_with([_resp({"message": "API rate limit exceeded"}, status=403)])
+    """A rate-limit 403 mid-paginate should raise RateLimitExceededError immediately."""
+    c = _client_with([
+        _resp({"message": "API rate limit exceeded"}, status=403, headers=_RATE_LIMITED)
+    ])
 
     with pytest.raises(RateLimitExceededError, match="rate limit"):
         list(c.paginate("/x"))
 
 
 def test_get_raises_on_403():
-    """A 403 from get() should raise RateLimitExceededError, not return the response."""
-    c = _client_with([_resp({"message": "forbidden"}, status=403)])
+    """A rate-limit 403 from get() should raise RateLimitExceededError, not return the response."""
+    c = _client_with([_resp({"message": "forbidden"}, status=403, headers=_RATE_LIMITED)])
 
     with pytest.raises(RateLimitExceededError):
         c.get("/x")
 
 
 def test_subsequent_calls_short_circuit_without_hitting_network():
-    """Once a 403 has been observed, further calls must not touch _http."""
-    c = _client_with([_resp({"message": "rate-limited"}, status=403)])
+    """Once a rate-limit 403 has been observed, further calls must not touch _http."""
+    c = _client_with([_resp({"message": "rate-limited"}, status=403, headers=_RATE_LIMITED)])
 
     with pytest.raises(RateLimitExceededError):
         c.get("/first")
@@ -62,7 +69,13 @@ def test_subsequent_calls_short_circuit_without_hitting_network():
 
 def test_error_message_includes_github_response_message():
     """The body's `message` field should be surfaced in the exception text."""
-    c = _client_with([_resp({"message": "API rate limit exceeded for foo"}, status=403)])
+    c = _client_with([
+        _resp(
+            {"message": "API rate limit exceeded for foo"},
+            status=403,
+            headers=_RATE_LIMITED,
+        )
+    ])
 
     with pytest.raises(RateLimitExceededError, match="API rate limit exceeded for foo"):
         c.get("/x")

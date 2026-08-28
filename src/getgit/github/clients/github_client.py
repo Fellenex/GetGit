@@ -14,9 +14,12 @@ class GithubClient:
     Built from a `GithubSettings` so the constructor encapsulates the
     auth-header wiring. Acts as a context manager — opens its
     underlying `httpx.Client` on `__enter__` and closes it on
-    `__exit__`. Once a 403 is observed, the client locks itself: every
-    subsequent call raises `RateLimitExceededError` without hitting the
-    network.
+    `__exit__`. Once a *rate-limit* 403 is observed (identified by its
+    `Retry-After` / `X-RateLimit-Remaining` headers), the client locks
+    itself: every subsequent call raises `RateLimitExceededError`
+    without hitting the network. A non-rate-limit 403 (e.g. a per-repo
+    access denial) is not a lock — it surfaces as a normal
+    `httpx.HTTPStatusError` for the caller to handle.
     """
 
     def __init__(self, settings: GithubSettings):
@@ -88,10 +91,32 @@ class GithubClient:
             )
 
     def _check_rate_limit(self, response: httpx.Response) -> None:
-        """Lock the client and raise if `response` is a 403."""
-        if response.status_code == 403:
+        """Lock the client and raise if `response` is a *rate-limit* 403.
+
+        GitHub reuses 403 for several conditions. Only a genuine rate
+        limit should lock the client and abort the whole scrape; a
+        per-resource access 403 (e.g. an org repo behind SAML SSO the
+        PAT isn't authorized for) must stay a local failure the caller
+        can skip. We classify by reliable headers, never the response
+        body (which varies across endpoint families):
+
+        - a `Retry-After` header → secondary (abuse) rate limit.
+        - `X-RateLimit-Remaining: 0` → primary rate limit.
+
+        A 403 matching neither is left alone: the caller's
+        `raise_for_status()` surfaces it as a normal
+        `httpx.HTTPStatusError` for per-resource handling.
+        """
+        if response.status_code == 403 and self._is_rate_limit_403(response):
             self._rate_limited = True
             raise RateLimitExceededError(self._extract_message(response))
+
+    @staticmethod
+    def _is_rate_limit_403(response: httpx.Response) -> bool:
+        """True when a 403 carries GitHub's rate-limit headers (primary or secondary)."""
+        if response.headers.get("Retry-After") is not None:
+            return True
+        return response.headers.get("X-RateLimit-Remaining") == "0"
 
     @staticmethod
     def _extract_message(response: httpx.Response) -> str:
