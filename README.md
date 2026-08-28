@@ -2,6 +2,19 @@
 
 A tool for scraping GitHub authorship data — commits, pull requests, and associated metadata — for a given user.
 
+## Table of contents
+
+- [Status](#status)
+- [Data collected](#data-collected)
+- [Setup](#setup)
+- [Output](#output)
+- [API cost](#api-cost)
+- [Resumable runs (checkpoint)](#resumable-runs-checkpoint)
+- [Code layout](#code-layout)
+- [Tests](#tests)
+- [Tasks](#tasks)
+- [Architecture and design decisions](#architecture-and-design-decisions)
+
 ## Status
 
 **Phase 1 (current)** — Python CLI. Authenticates via a GitHub Personal Access Token (PAT) and pulls data for a single user.
@@ -196,6 +209,28 @@ Each run writes its own `output/<username>/<timestamp>/` subdirectory containing
 ```bash
 jq -s 'add' output/Fellenex/*/commits.json > all-commits.json
 ```
+
+## Code layout
+
+Top-level directories and their responsibilities:
+
+| Directory | Responsibility |
+| --- | --- |
+| `src/` | The `getgit` package — all application code (see the per-subfolder breakdown below). |
+| `tests/` | The pytest suite, mirroring the package layout under `tests/getgit/`, plus reusable test doubles/fixtures under `tests/_support/`. |
+| `docs/` | Documentation assets. Currently the `architecture.drawio` dependency diagram (refreshed at each release tag). |
+| `.claude/` | Project process material — [`guidelines.md`](.claude/guidelines.md) (roadmap, architecture, conventions) and [`architecturalDecisions.md`](.claude/architecturalDecisions.md) (the chronological ADR log). |
+
+Source is organized by **domain**, not by technical layer. Each subfolder under `src/getgit/` is a domain with an `__init__.py` that re-exports its public types:
+
+| `src/getgit/` subfolder | Responsibility |
+| --- | --- |
+| `application/` | UI-agnostic orchestration. `run(settings)` is the shared entry point (`main.py`); also holds `AppSettings`/`UserState` (`data/`) and the `UserStateStore` checkpoint repository. |
+| `authentication/` | `GithubSettings` — the passive auth config carrier (`auth_token`, `base_url`, `timeout`). |
+| `cli/` | Phase-1 command-line entry point: `ArgumentParser` and `main()`. |
+| `exporting/` | Report output. `Writer` protocol (`interfaces/`), `ReportService` (`services/`), `CsvWriter`, and the JSON file handler. |
+| `github/` | Everything GitHub-specific: `GithubClient` (`clients/`), the `Commit`/`PullRequest`/`Review` data models (`data/`), the per-resource scrapers (`providers/`), and `GithubService`, the facade over them (`services/`). |
+| `infrastructure/` | Cross-cutting building blocks: `JSONModel` (`data/`) and `IsoDateParser` (`dates/`). |
 
 ## Tests
 
