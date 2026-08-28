@@ -1,6 +1,6 @@
 """GitHub domain — clients, providers, services, and result data classes."""
 
-from .clients import GithubClient, RateLimitExceededError
+from .clients import GithubClient, RateLimitExceededError, RepositoryAccessError
 from .data import (
     AuthorshipReport,
     Commit,
@@ -22,5 +22,6 @@ __all__ = [
     "PullRequestProvider",
     "RateLimitExceededError",
     "RepoProvider",
+    "RepositoryAccessError",
     "Review",
 ]

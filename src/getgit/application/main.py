@@ -22,6 +22,7 @@ from ..github import (
     PullRequestProvider,
     RateLimitExceededError,
     RepoProvider,
+    RepositoryAccessError,
 )
 from .data import AppSettings, UserState
 from .user_state_repository import UserStateRepository
@@ -34,6 +35,9 @@ def run(settings: AppSettings) -> int:
     - `0` on full success.
     - `2` on partial save — a 403 was hit mid-scrape and the report was
       written from whatever data was collected so far.
+    - `3` when a `--repo`-scoped search returns 422 — the target repo
+      doesn't exist or the token can't see it. Fails fast with a clean
+      message (no report written, no traceback).
 
     Raises `RuntimeError` if `settings.access_token` is missing —
     failing fast here beats discovering it mid-scrape via a 401 from
@@ -110,6 +114,9 @@ def run(settings: AppSettings) -> int:
                 since_per_repo=state.commits_per_repo,
             )
             print(f"Found {len(commits)} commits", file=sys.stderr)
+    except RepositoryAccessError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 3
     except RateLimitExceededError as e:
         partial = True
         print(f"Hit rate limit: {e}", file=sys.stderr)

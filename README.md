@@ -51,6 +51,11 @@ getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension
 
 When `<username>` matches the authenticated user, both public and private repos are scanned. Otherwise only public data is returned.
 
+**On a `--repo` the token can't see:** GitHub's Search API returns **422** (not empty results) for a `repo:OWNER/NAME` qualifier when the repository doesn't exist *or* the token isn't authorized to see it — GitHub returns 404/422 rather than 403 so a token can't probe for private resources. GetGit catches this, prints a one-line message, and **exits `3`** (no report, no traceback) instead of dumping an `HTTPStatusError`. The cause is almost always token authorization:
+
+- **Classic PAT** — needs `repo` scope **and** SSO authorization for the org (Settings → Developer settings → Tokens (classic) → the token → Configure SSO → Authorize).
+- **Fine-grained PAT** — the org must be the resource owner and approve the token.
+
 ## Output
 
 Each run writes to a per-run subdirectory `output/<username>/<generated_at>/`, where the timestamp is `YYYY-MM-DD_THH-MM-SS` (hyphens, no colons — works on every filesystem). Inside the subdirectory, one JSON and one CSV per top-level collection:
