@@ -174,7 +174,9 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 
 **Rule of thumb:** if you expect more than ~400 PRs per set, use `--no-extension-breakdown` and/or `--max-prs` to stay under one hour's budget.
 
-**On 403:** the client locks itself on the first `403`, aborts the scrape, and **writes a partial report from whatever data was already collected** — exit code `2` (vs. `0` for full success). Each provider attaches its in-progress accumulator to the raised exception so nothing collected is wasted. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
+**On a rate-limit 403:** the client locks itself on the first rate-limit `403` (identified by a `Retry-After` header or `X-RateLimit-Remaining: 0`), aborts the scrape, and **writes a partial report from whatever data was already collected** — exit code `2` (vs. `0` for full success). Each provider attaches its in-progress accumulator to the raised exception so nothing collected is wasted. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
+
+**On a per-repo access 403:** a `403` that is *not* a rate limit — e.g. an org repo behind SAML/SSO the PAT isn't authorized for — is treated as a per-repo condition, not a rate limit. That single repo is skipped (like a `404`/`409`) and the commit walk continues; the run still completes with exit `0`. Authorize the PAT for the org (classic PAT: "Configure SSO"; fine-grained PAT: org grants access) to include those repos.
 
 ## Resumable runs (checkpoint)
 
