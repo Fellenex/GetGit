@@ -77,6 +77,30 @@ def test_fetch_skips_repos_that_return_409_or_404():
     assert CommitProvider(client).fetch([{"full_name": "o/empty"}], "alice") == []
 
 
+def test_fetch_skips_repo_that_returns_403_and_continues():
+    """A per-repo access 403 (e.g. org repo behind SAML SSO) is skipped, not fatal:
+    the walk continues to the next repo instead of aborting the whole run."""
+    forbidden = httpx.Request("GET", "/repos/org/locked/commits")
+
+    def per_url(url, _params=None):
+        if url == "/repos/org/locked/commits":
+            raise httpx.HTTPStatusError(
+                "forbidden",
+                request=forbidden,
+                response=httpx.Response(403, request=forbidden),
+            )
+        return iter([_commit("a")])
+
+    client = Mock(spec=GithubClient)
+    client.paginate.side_effect = per_url
+
+    repos = [{"full_name": "org/locked"}, {"full_name": "org/ok"}]
+    out = CommitProvider(client).fetch(repos, "alice")
+
+    assert [c.sha for c in out] == ["a"]
+    assert out[0].repo == "org/ok"
+
+
 def test_rate_limit_attaches_partial_commits_to_exception():
     """If we collect from one repo then 403 on the next, the partial commits ride on the exception."""
     def per_url(url, _params=None):

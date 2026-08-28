@@ -9,8 +9,10 @@ from unittest.mock import Mock
 
 import httpx
 
+import pytest
+
 from getgit.authentication import GithubSettings
-from getgit.github import GithubClient
+from getgit.github import GithubClient, RateLimitExceededError
 
 
 def _client_with(responses: list[httpx.Response]) -> GithubClient:
@@ -22,12 +24,19 @@ def _client_with(responses: list[httpx.Response]) -> GithubClient:
     return client
 
 
-def _resp(payload, links_header: str | None = None, status: int = 200) -> httpx.Response:
+def _resp(
+    payload,
+    links_header: str | None = None,
+    status: int = 200,
+    headers: dict | None = None,
+) -> httpx.Response:
     """Build a real `httpx.Response`. `links_header` populates the `Link` header httpx parses for us."""
-    headers = {"Link": links_header} if links_header else {}
+    all_headers = dict(headers or {})
+    if links_header:
+        all_headers["Link"] = links_header
     # `request` must be set so raise_for_status() works; URL is irrelevant under the mock transport.
     return httpx.Response(
-        status, json=payload, headers=headers, request=httpx.Request("GET", "/")
+        status, json=payload, headers=all_headers, request=httpx.Request("GET", "/")
     )
 
 
@@ -74,3 +83,37 @@ def test_viewer_login_returns_login_field():
 
     assert c.viewer_login() == "alice"
     c._http.get.assert_called_with("/user", params=None)
+
+
+def test_primary_rate_limit_403_locks_and_raises():
+    """A 403 with `X-RateLimit-Remaining: 0` is a rate limit: raise and lock."""
+    c = _client_with([_resp([], status=403, headers={"X-RateLimit-Remaining": "0"})])
+
+    with pytest.raises(RateLimitExceededError):
+        list(c.paginate("/x"))
+
+    # Client is now locked — the next call is refused without touching the network.
+    with pytest.raises(RateLimitExceededError):
+        list(c.paginate("/y"))
+
+
+def test_secondary_rate_limit_403_with_retry_after_locks_and_raises():
+    """A 403 carrying `Retry-After` is a secondary (abuse) rate limit: raise and lock."""
+    c = _client_with([_resp([], status=403, headers={"Retry-After": "60"})])
+
+    with pytest.raises(RateLimitExceededError):
+        list(c.paginate("/x"))
+
+
+def test_access_403_surfaces_as_http_error_without_locking():
+    """A 403 that is not a rate limit (quota remaining, no Retry-After) surfaces as
+    HTTPStatusError and does NOT lock the client, so later calls still work."""
+    access_denied = _resp([], status=403, headers={"X-RateLimit-Remaining": "4999"})
+    later_ok = _resp([{"n": 1}])
+    c = _client_with([access_denied, later_ok])
+
+    with pytest.raises(httpx.HTTPStatusError):
+        list(c.paginate("/repos/org/private/commits"))
+
+    # Not locked: a subsequent call to another endpoint succeeds.
+    assert list(c.paginate("/x")) == [{"n": 1}]

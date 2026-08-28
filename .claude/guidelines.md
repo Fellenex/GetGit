@@ -59,7 +59,7 @@ src/getgit/
 
 ### Self vs stranger scope
 
-The only client-side difference between scraping yourself and scraping a stranger lives in `RepoProvider.list_repos(username, is_self=...)`: `is_self=True` calls `/user/repos`, `False` calls `/users/{u}/repos`. Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
+The only client-side difference between scraping yourself and scraping a stranger lives in `RepoProvider.list_repos(username, is_self=...)`: `is_self=True` calls `/user/repos` with `affiliation=owner,collaborator,organization_member` (so org-owned and collaborator repos are discovered, not just owned ones — see [ADR-046]), `False` calls `/users/{u}/repos` (public owned repos only). Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
 
 ### Providers (the `github/providers/` domain)
 
@@ -87,7 +87,8 @@ Today: JSON + CSV files written by `ReportExporter` (in `exporting/`) to a per-r
 - Authenticated REST: 5,000 req/hr.
 - Search API (`/search/commits`, `/search/issues`): 30 req/min, 1,000-result cap per query — slice by date range to work around.
 - Per-PR cost in the current design: 6 calls (`/pulls/{n}`, `/pulls/{n}/commits`, `/pulls/{n}/files`, `/pulls/{n}/reviews`, `/issues/{n}/comments`, `/pulls/{n}/comments`). `--no-extension-breakdown` drops it to 5.
-- **On 403, `GithubClient` locks itself and raises `RateLimitExceededError` for every subsequent call.** Each provider catches the error, attaches its partial accumulator to `e.partial`, and re-raises. The orchestrator catches at the top, writes a partial report from whatever was collected, and returns exit code `2`. No automatic backoff/retry — the operator decides when to re-run.
+- **On a *rate-limit* 403, `GithubClient` locks itself and raises `RateLimitExceededError` for every subsequent call.** A 403 counts as a rate limit only when it carries a `Retry-After` header or `X-RateLimit-Remaining: 0` (see [ADR-047]); each provider catches the error, attaches its partial accumulator to `e.partial`, and re-raises. The orchestrator catches at the top, writes a partial report from whatever was collected, and returns exit code `2`. No automatic backoff/retry — the operator decides when to re-run.
+- **A non-rate-limit 403 (per-resource access denial, e.g. an org repo behind SAML SSO) surfaces as a plain `httpx.HTTPStatusError` and does *not* lock the client.** `CommitProvider` skips such a repo (alongside `404`/`409`) and keeps walking, so one inaccessible repo doesn't derail the run.
 - Always set ETag headers when caching is added to avoid spending quota on unchanged data.
 
 ## Conventions

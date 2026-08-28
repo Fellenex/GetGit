@@ -49,7 +49,7 @@ getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension
 | `--no-extension-breakdown` | Skip the per-file API call; store totals only under the `"*"` key. Saves one paginated call per PR. |
 | `--repo OWNER/NAME` | Scope the scrape to a single repo. Skips repo discovery; PR searches gain `repo:OWNER/NAME`; commits are listed only for that repo. |
 
-When `<username>` matches the authenticated user, both public and private repos are scanned. Otherwise only public data is returned.
+When `<username>` matches the authenticated user, repo discovery covers everything the PAT can see — repos you own, repos you collaborate on, and repos owned by organizations you belong to (e.g. a company org), public and private alike. This is what lets commits in an org's repos be collected. Note the PAT must be authorized for the org: for a private org repo behind SAML/SSO, a classic PAT needs "Configure SSO" authorization and a fine-grained PAT needs the org to grant it access — otherwise those repos are invisible to the token and a `repo:`-scoped search against one returns a 422. When `<username>` is someone else, only public repos they own are scanned.
 
 ## Output
 
@@ -174,7 +174,9 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 
 **Rule of thumb:** if you expect more than ~400 PRs per set, use `--no-extension-breakdown` and/or `--max-prs` to stay under one hour's budget.
 
-**On 403:** the client locks itself on the first `403`, aborts the scrape, and **writes a partial report from whatever data was already collected** — exit code `2` (vs. `0` for full success). Each provider attaches its in-progress accumulator to the raised exception so nothing collected is wasted. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
+**On a rate-limit 403:** the client locks itself on the first rate-limit `403` (identified by a `Retry-After` header or `X-RateLimit-Remaining: 0`), aborts the scrape, and **writes a partial report from whatever data was already collected** — exit code `2` (vs. `0` for full success). Each provider attaches its in-progress accumulator to the raised exception so nothing collected is wasted. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
+
+**On a per-repo access 403:** a `403` that is *not* a rate limit — e.g. an org repo behind SAML/SSO the PAT isn't authorized for — is treated as a per-repo condition, not a rate limit. That single repo is skipped (like a `404`/`409`) and the commit walk continues; the run still completes with exit `0`. Authorize the PAT for the org (classic PAT: "Configure SSO"; fine-grained PAT: org grants access) to include those repos.
 
 ## Resumable runs (checkpoint)
 
