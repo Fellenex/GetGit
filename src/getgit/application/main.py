@@ -13,15 +13,11 @@ from datetime import datetime, timezone
 from ..authentication import GithubSettings
 from ..exporting import JSONFileHandler, ReportService
 from ..github import (
-    AuthorshipReport,
     Commit,
-    CommitProvider,
     GithubClient,
     GithubService,
     PullRequestFetchResult,
-    PullRequestProvider,
     RateLimitExceededError,
-    RepoProvider,
     RepositoryAccessError,
 )
 from .data import AppSettings, UserState
@@ -80,12 +76,7 @@ def run(settings: AppSettings) -> int:
                 file=sys.stderr,
             )
 
-            github = GithubService(
-                repo_provider=RepoProvider(client),
-                pull_request_provider=PullRequestProvider(client),
-                commit_provider=CommitProvider(client),
-                settings=settings,
-            )
+            github = GithubService.build(client, settings)
 
             if settings.target_repo:
                 repos = [{"full_name": settings.target_repo}]
@@ -123,15 +114,14 @@ def run(settings: AppSettings) -> int:
         repos, pr_result, commits = _absorb_partial(e.partial, repos, pr_result, commits)
         print("Saving partial report from data collected so far.", file=sys.stderr)
 
-    report = AuthorshipReport(
-        username=settings.username,
+    report_service = ReportService()
+    report = report_service.generate_report(
+        settings.username,
+        commits,
+        pr_result,
         generated_at=datetime.now(timezone.utc),
-        commits=commits,
-        authored_pull_requests=pr_result.authored,
-        participated_pull_requests=pr_result.participated,
-        reviews=pr_result.reviews,
     )
-    paths = ReportService().write_report(report, settings.out_dir)
+    paths = report_service.write_report(report, settings.out_dir)
     for label, p in paths.items():
         print(f"Wrote {label}: {p}")
 

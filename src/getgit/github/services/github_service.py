@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from ...application import AppSettings
+from ..clients import GithubClient
 from ..data import Commit, PullRequestFetchResult
 from ..providers import CommitProvider, PullRequestProvider, RepoProvider
 
@@ -29,6 +30,22 @@ class GithubService:
         self._pull_request_provider = pull_request_provider
         self._commit_provider = commit_provider
         self._settings = settings
+
+    @classmethod
+    def build(cls, client: GithubClient, settings: AppSettings) -> "GithubService":
+        """Compose a `GithubService` and its three providers from a live client.
+
+        The composition root for the GitHub domain: callers hand over a
+        `GithubClient` and `AppSettings` and get back a fully wired
+        service without importing or constructing the individual
+        providers themselves.
+        """
+        return cls(
+            repo_provider=RepoProvider(client),
+            pull_request_provider=PullRequestProvider(client),
+            commit_provider=CommitProvider(client),
+            settings=settings,
+        )
 
     def fetch_repositories(self, *, is_self: bool) -> list[dict]:
         """List repos owned by the target user (public-only when `is_self=False`)."""

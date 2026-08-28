@@ -68,11 +68,11 @@ Per-resource scrapers, each taking a `GithubClient` in its constructor:
 - `PullRequestProvider` — `fetch(username, limit, fetch_extensions, since)` returns a `PullRequestFetchResult`
 - `CommitProvider` — `fetch(repos, username, limit, pr_index, since_per_repo)` returns `list[Commit]`
 
-`GithubService` (in `github/services/`) bundles the three providers + `AppSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`. Call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`.
+`GithubService` (in `github/services/`) bundles the three providers + `AppSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`. Call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`. `GithubService.build(client, settings)` is the composition root for the domain: it constructs the three providers from one `GithubClient` so `application.run` never imports them (see [ADR-049]). `run` still owns the `GithubClient` lifecycle (the `with` block wraps the whole pipeline, including error handling).
 
 ### Storage / cache
 
-Today: JSON + CSV files written by `ReportExporter` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateStore` (in `application/`). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
+Today: JSON + CSV files written by `ReportService` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. `ReportService.generate_report(...)` assembles the `AuthorshipReport` from the collected pieces and `write_report(...)` persists it, so `application.run` neither constructs the model nor knows the file layout (see [ADR-049]). Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateRepository` (in `application/`). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
 
 ## Tech choices
 

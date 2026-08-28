@@ -1,8 +1,9 @@
 """Orchestrates writing an `AuthorshipReport` to disk via the writers."""
 
+from datetime import datetime
 from pathlib import Path
 
-from ...github import AuthorshipReport
+from ...github import AuthorshipReport, Commit, PullRequestFetchResult
 from ..csv_writer import CsvWriter
 from ..json_file_handler import JSONFileHandler
 
@@ -15,6 +16,30 @@ class ReportService:
     makes it trivial to swap the writer pair later — phase 2 might
     inject a `ParquetWriter`, etc.
     """
+
+    def generate_report(
+        self,
+        username: str,
+        commits: list[Commit],
+        pr_result: PullRequestFetchResult,
+        *,
+        generated_at: datetime,
+    ) -> AuthorshipReport:
+        """Assemble an `AuthorshipReport` from the collected scrape pieces.
+
+        Flattens a `PullRequestFetchResult` into the report's separate
+        authored / participated / reviews collections. `generated_at`
+        is supplied by the caller so the report's timestamp matches the
+        run's own clock rather than the moment of assembly.
+        """
+        return AuthorshipReport(
+            username=username,
+            generated_at=generated_at,
+            commits=commits,
+            authored_pull_requests=pr_result.authored,
+            participated_pull_requests=pr_result.participated,
+            reviews=pr_result.reviews,
+        )
 
     def write_report(self, report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
         """Write each top-level collection in `report` as both JSON and CSV.

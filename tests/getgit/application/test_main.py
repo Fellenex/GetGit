@@ -54,6 +54,11 @@ def test_run_reports_repository_access_error_with_exit_3(monkeypatch, tmp_path, 
         def __init__(self, *args, **kwargs):
             """Ignore the wired-in providers and settings."""
 
+        @classmethod
+        def build(cls, client, settings):
+            """Match `GithubService.build`, ignoring the client and settings."""
+            return cls()
+
         def fetch_pull_requests(self, since=None):
             """Simulate the 422-scoped-search failure."""
             raise RepositoryAccessError("octocat/hello-world")
