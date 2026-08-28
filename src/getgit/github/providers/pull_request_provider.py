@@ -4,8 +4,10 @@ import re
 from datetime import datetime
 from pathlib import PurePosixPath
 
+import httpx
+
 from ...infrastructure.dates import IsoDateParser
-from ..clients import GithubClient, RateLimitExceededError
+from ..clients import GithubClient, RateLimitExceededError, RepositoryAccessError
 from ..data import PullRequest, PullRequestFetchResult, Review
 
 
@@ -43,7 +45,10 @@ class PullRequestProvider:
         `limit` caps each set independently. On rate limit, attaches
         the partially-built `PullRequestFetchResult` to the raised
         `RateLimitExceededError` so the orchestrator can still emit a
-        partial report.
+        partial report. When `target_repo` is set and the scoped search
+        returns 422 (the repo doesn't exist or the token can't see it),
+        raises `RepositoryAccessError` instead of leaking the raw
+        `HTTPStatusError`.
         """
         out = PullRequestFetchResult()
         try:
@@ -87,6 +92,10 @@ class PullRequestProvider:
             return out
         except RateLimitExceededError as e:
             e.partial = out
+            raise
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 422 and target_repo is not None:
+                raise RepositoryAccessError(target_repo) from e
             raise
 
     @staticmethod

@@ -51,6 +51,11 @@ getgit <username> [--out output] [--max-commits N] [--max-prs N] [--no-extension
 
 When `<username>` matches the authenticated user, repo discovery covers everything the PAT can see — repos you own, repos you collaborate on, and repos owned by organizations you belong to (e.g. a company org), public and private alike. This is what lets commits in an org's repos be collected. Note the PAT must be authorized for the org: for a private org repo behind SAML/SSO, a classic PAT needs "Configure SSO" authorization and a fine-grained PAT needs the org to grant it access — otherwise those repos are invisible to the token and a `repo:`-scoped search against one returns a 422. When `<username>` is someone else, only public repos they own are scanned.
 
+**On a `--repo` the token can't see:** GitHub's Search API returns **422** (not empty results) for a `repo:OWNER/NAME` qualifier when the repository doesn't exist *or* the token isn't authorized to see it — GitHub returns 404/422 rather than 403 so a token can't probe for private resources. GetGit catches this, prints a one-line message, and **exits `3`** (no report, no traceback) instead of dumping an `HTTPStatusError`. The cause is almost always token authorization:
+
+- **Classic PAT** — needs `repo` scope **and** SSO authorization for the org (Settings → Developer settings → Tokens (classic) → the token → Configure SSO → Authorize).
+- **Fine-grained PAT** — the org must be the resource owner and approve the token.
+
 ## Output
 
 Each run writes to a per-run subdirectory `output/<username>/<generated_at>/`, where the timestamp is `YYYY-MM-DD_THH-MM-SS` (hyphens, no colons — works on every filesystem). Inside the subdirectory, one JSON and one CSV per top-level collection:

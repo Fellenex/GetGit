@@ -2,6 +2,7 @@
 
 from unittest.mock import Mock
 
+import httpx
 import pytest
 
 from _support.github import FakeGithubClient
@@ -11,7 +12,15 @@ from getgit.github import (
     PullRequestFetchResult,
     PullRequestProvider,
     RateLimitExceededError,
+    RepositoryAccessError,
 )
+
+
+def _http_status_error(status: int) -> httpx.HTTPStatusError:
+    """Build a real `httpx.HTTPStatusError` carrying a response of `status`."""
+    request = httpx.Request("GET", "/search/issues")
+    response = httpx.Response(status, request=request)
+    return httpx.HTTPStatusError(f"{status}", request=request, response=response)
 
 
 def test_file_extension_simple():
@@ -125,3 +134,33 @@ def test_rate_limit_attaches_partial_pr_result_to_exception():
     assert isinstance(excinfo.value.partial, PullRequestFetchResult)
     assert excinfo.value.partial.authored == []
     assert excinfo.value.partial.participated == []
+
+
+def test_scoped_search_422_becomes_repository_access_error():
+    """A 422 from a `--repo`-scoped search should surface as a clean domain error."""
+    client = Mock(spec=GithubClient)
+    client.paginate.side_effect = _http_status_error(422)
+
+    with pytest.raises(RepositoryAccessError) as excinfo:
+        PullRequestProvider(client).fetch("alice", target_repo="octocat/hello-world")
+
+    assert excinfo.value.repo == "octocat/hello-world"
+    assert "octocat/hello-world" in str(excinfo.value)
+
+
+def test_422_without_target_repo_is_not_swallowed():
+    """Without a `repo:` scope a 422 isn't the authorization case — re-raise it raw."""
+    client = Mock(spec=GithubClient)
+    client.paginate.side_effect = _http_status_error(422)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        PullRequestProvider(client).fetch("alice")
+
+
+def test_non_422_status_error_is_reraised_even_when_scoped():
+    """Other HTTP errors (e.g. 500) must propagate unchanged, not masquerade as access errors."""
+    client = Mock(spec=GithubClient)
+    client.paginate.side_effect = _http_status_error(500)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        PullRequestProvider(client).fetch("alice", target_repo="octocat/hello-world")
