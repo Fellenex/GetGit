@@ -2,6 +2,19 @@
 
 A tool for scraping GitHub authorship data — commits, pull requests, and associated metadata — for a given user.
 
+## Table of contents
+
+- [Status](#status)
+- [Data collected](#data-collected)
+- [Setup](#setup)
+- [Code layout](#code-layout)
+- [Output](#output)
+  - [Resumable runs (checkpoint)](#resumable-runs-checkpoint)
+- [API cost](#api-cost)
+- [Tests](#tests)
+- [Tasks](#tasks)
+- [Architecture and design decisions](#architecture-and-design-decisions)
+
 ## Status
 
 **Phase 1 (current)** — Python CLI. Authenticates via a GitHub Personal Access Token (PAT) and pulls data for a single user.
@@ -55,6 +68,28 @@ When `<username>` matches the authenticated user, repo discovery covers everythi
 
 - **Classic PAT** — needs `repo` scope **and** SSO authorization for the org (Settings → Developer settings → Tokens (classic) → the token → Configure SSO → Authorize).
 - **Fine-grained PAT** — the org must be the resource owner and approve the token.
+
+## Code layout
+
+Top-level directories and their responsibilities:
+
+| Directory | Responsibility |
+| --- | --- |
+| `src/` | The `getgit` package — all application code (see the per-subfolder breakdown below). |
+| `tests/` | The pytest suite, mirroring the package layout under `tests/getgit/`, plus reusable test doubles/fixtures under `tests/_support/`. |
+| `docs/` | Documentation assets. Currently the `architecture.drawio` dependency diagram (refreshed at each release tag). |
+| `.claude/` | Project process material — [`guidelines.md`](.claude/guidelines.md) (roadmap, architecture, conventions) and [`architecturalDecisions.md`](.claude/architecturalDecisions.md) (the chronological ADR log). |
+
+Source is organized by **domain**, not by technical layer. Each subfolder under `src/getgit/` is a domain with an `__init__.py` that re-exports its public types:
+
+| `src/getgit/` subfolder | Responsibility |
+| --- | --- |
+| `application/` | UI-agnostic orchestration. `run(settings)` is the shared entry point (`main.py`); also holds `AppSettings`/`UserState` (`data/`) and the `UserStateStore` checkpoint repository. |
+| `authentication/` | `GithubSettings` — the passive auth config carrier (`auth_token`, `base_url`, `timeout`). |
+| `cli/` | Phase-1 command-line entry point: `ArgumentParser` and `main()`. |
+| `exporting/` | Report output. `Writer` protocol (`interfaces/`), `ReportService` (`services/`), `CsvWriter`, and the JSON file handler. |
+| `github/` | Everything GitHub-specific: `GithubClient` (`clients/`), the `Commit`/`PullRequest`/`Review` data models (`data/`), the per-resource scrapers (`providers/`), and `GithubService`, the facade over them (`services/`). |
+| `infrastructure/` | Cross-cutting building blocks: `JSONModel` (`data/`) and `IsoDateParser` (`dates/`). |
 
 ## Output
 
@@ -146,6 +181,25 @@ One CSV per top-level collection. Columns mirror the dataclass field order.
 
 If a collection is empty, the corresponding CSV is written as an empty file (no header) — there's no row from which to infer column names.
 
+### Resumable runs (checkpoint)
+
+Each user has a checkpoint file at `output/<username>/state.json` recording how far the previous run got. On the next run, GetGit:
+
+- Sends `updated:>=<watermark>` on every PR search, skipping PRs that haven't changed.
+- Sends `since=<watermark>` to `/repos/{repo}/commits`, skipping commits already collected per repo.
+- Always re-lists repos (cheap; usually one page).
+
+Watermark behavior:
+
+- **Complete run** → watermarks advance to the newest data collected.
+- **Partial run (rate-limited)** → watermarks do *not* advance. The next run re-fetches the same window so nothing falls into a gap between the old watermark and the oldest item the partial managed to collect.
+
+Each run writes its own `output/<username>/<timestamp>/` subdirectory containing only the delta (the data fetched in *that* run). To get the complete picture across runs, concatenate per-collection files across the timestamp dirs — e.g.
+
+```bash
+jq -s 'add' output/Fellenex/*/commits.json > all-commits.json
+```
+
 ## API cost
 
 GitHub's authenticated REST limit is **5,000 requests/hour**. Knowing how a run consumes that budget tells you whether to use `--max-prs`, `--max-commits`, or `--no-extension-breakdown`.
@@ -182,25 +236,6 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 **On a rate-limit 403:** the client locks itself on the first rate-limit `403` (identified by a `Retry-After` header or `X-RateLimit-Remaining: 0`), aborts the scrape, and **writes a partial report from whatever data was already collected** — exit code `2` (vs. `0` for full success). Each provider attaches its in-progress accumulator to the raised exception so nothing collected is wasted. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
 
 **On a per-repo access 403:** a `403` that is *not* a rate limit — e.g. an org repo behind SAML/SSO the PAT isn't authorized for — is treated as a per-repo condition, not a rate limit. That single repo is skipped (like a `404`/`409`) and the commit walk continues; the run still completes with exit `0`. Authorize the PAT for the org (classic PAT: "Configure SSO"; fine-grained PAT: org grants access) to include those repos.
-
-## Resumable runs (checkpoint)
-
-Each user has a checkpoint file at `output/<username>/state.json` recording how far the previous run got. On the next run, GetGit:
-
-- Sends `updated:>=<watermark>` on every PR search, skipping PRs that haven't changed.
-- Sends `since=<watermark>` to `/repos/{repo}/commits`, skipping commits already collected per repo.
-- Always re-lists repos (cheap; usually one page).
-
-Watermark behavior:
-
-- **Complete run** → watermarks advance to the newest data collected.
-- **Partial run (rate-limited)** → watermarks do *not* advance. The next run re-fetches the same window so nothing falls into a gap between the old watermark and the oldest item the partial managed to collect.
-
-Each run writes its own `output/<username>/<timestamp>/` subdirectory containing only the delta (the data fetched in *that* run). To get the complete picture across runs, concatenate per-collection files across the timestamp dirs — e.g.
-
-```bash
-jq -s 'add' output/Fellenex/*/commits.json > all-commits.json
-```
 
 ## Tests
 
