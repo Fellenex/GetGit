@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class IssueSearchResult:
+class IssueSearchResponse:
     """One hit from GitHub's `/search/issues` endpoint.
 
     A wire-shape response object carrying the two fields we consume: the

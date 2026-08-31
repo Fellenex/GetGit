@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Comment:
+class CommentsResponse:
     """One comment from either PR comment stream.
 
     Covers both `/repos/{repo}/issues/{n}/comments` and

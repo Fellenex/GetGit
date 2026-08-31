@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 @dataclass
-class PullRequestReview:
+class PullRequestReviewsResponse:
     """One review as returned by `/repos/{repo}/pulls/{number}/reviews`.
 
     A wire-shape response object. `author_login` is the review author's

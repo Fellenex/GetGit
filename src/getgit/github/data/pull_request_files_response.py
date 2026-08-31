@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class PullRequestFile:
+class PullRequestFilesResponse:
     """One changed file as returned by `/repos/{repo}/pulls/{number}/files`.
 
     A wire-shape response object. `GithubProvider` aggregates these into

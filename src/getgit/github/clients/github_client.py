@@ -7,13 +7,13 @@ import httpx
 
 from ...infrastructure.dates import IsoDateParser
 from ..data import (
-    Comment,
-    CommitPayload,
-    IssueSearchResult,
-    PullRequestDetail,
-    PullRequestFile,
-    PullRequestReview,
-    RepoSummary,
+    CommentsResponse,
+    CommitsResponse,
+    IssueSearchResponse,
+    PullRequestFilesResponse,
+    PullRequestResponse,
+    PullRequestReviewsResponse,
+    ReposResponse,
 )
 from .github_settings import GithubSettings
 from .rate_limit_exceeded_error import RateLimitExceededError
@@ -94,7 +94,7 @@ class GithubClient:
         resp.raise_for_status()
         return resp.json()["login"]
 
-    def list_own_repos(self) -> list[RepoSummary]:
+    def list_own_repos(self) -> list[ReposResponse]:
         """List repos the token's user owns, collaborates on, or is an org member of.
 
         Hits `/user/repos` with
@@ -103,7 +103,7 @@ class GithubClient:
         owned ones) — the self-scrape scope.
         """
         return [
-            RepoSummary(full_name=raw["full_name"])
+            ReposResponse(full_name=raw["full_name"])
             for raw in self.paginate(
                 "/user/repos",
                 {
@@ -113,14 +113,14 @@ class GithubClient:
             )
         ]
 
-    def list_user_repos(self, username: str) -> list[RepoSummary]:
+    def list_user_repos(self, username: str) -> list[ReposResponse]:
         """List the public repos owned by `username` (the stranger-scrape scope)."""
         return [
-            RepoSummary(full_name=raw["full_name"])
+            ReposResponse(full_name=raw["full_name"])
             for raw in self.paginate(f"/users/{username}/repos")
         ]
 
-    def search_issues(self, query: str) -> list[IssueSearchResult]:
+    def search_issues(self, query: str) -> list[IssueSearchResponse]:
         """Run a `/search/issues` query, returning each hit's repo slug + number.
 
         The search envelope (`items`) and the `repository_url` →
@@ -128,7 +128,7 @@ class GithubClient:
         knowledge escapes the client.
         """
         return [
-            IssueSearchResult(
+            IssueSearchResponse(
                 repo_full_name=self._key_from_repo_url(issue["repository_url"]),
                 number=issue["number"],
             )
@@ -137,7 +137,7 @@ class GithubClient:
 
     def list_repo_commits(
         self, full_name: str, *, author: str, since: datetime | None = None
-    ) -> list[CommitPayload]:
+    ) -> list[CommitsResponse]:
         """List commits in `full_name` authored by `author`, optionally `since` a time.
 
         Uses `/repos/{full_name}/commits?author=...`, avoiding the
@@ -148,7 +148,7 @@ class GithubClient:
         if since is not None:
             params["since"] = since.isoformat()
         return [
-            CommitPayload(
+            CommitsResponse(
                 sha=raw["sha"],
                 authored_at=IsoDateParser.parse(raw["commit"]["author"]["date"]),
                 message=raw["commit"]["message"],
@@ -156,12 +156,12 @@ class GithubClient:
             for raw in self.paginate(f"/repos/{full_name}/commits", params)
         ]
 
-    def get_pull_request(self, repo: str, number: int) -> PullRequestDetail:
+    def get_pull_request(self, repo: str, number: int) -> PullRequestResponse:
         """Fetch one PR's detail from `/repos/{repo}/pulls/{number}`."""
         resp = self.get(f"/repos/{repo}/pulls/{number}")
         resp.raise_for_status()
         pr = resp.json()
-        return PullRequestDetail(
+        return PullRequestResponse(
             title=pr["title"],
             body=pr.get("body"),
             merged_at=IsoDateParser.parse(pr.get("merged_at")),
@@ -174,10 +174,12 @@ class GithubClient:
             review_comments=pr.get("review_comments", 0),
         )
 
-    def list_pull_request_files(self, repo: str, number: int) -> list[PullRequestFile]:
+    def list_pull_request_files(
+        self, repo: str, number: int
+    ) -> list[PullRequestFilesResponse]:
         """List a PR's changed files from `/repos/{repo}/pulls/{number}/files`."""
         return [
-            PullRequestFile(
+            PullRequestFilesResponse(
                 filename=raw["filename"],
                 additions=raw.get("additions", 0),
                 deletions=raw.get("deletions", 0),
@@ -187,10 +189,10 @@ class GithubClient:
 
     def list_pull_request_reviews(
         self, repo: str, number: int
-    ) -> list[PullRequestReview]:
+    ) -> list[PullRequestReviewsResponse]:
         """List a PR's reviews from `/repos/{repo}/pulls/{number}/reviews`."""
         return [
-            PullRequestReview(
+            PullRequestReviewsResponse(
                 author_login=(raw.get("user") or {}).get("login"),
                 state=raw.get("state", ""),
                 submitted_at=IsoDateParser.parse(raw.get("submitted_at")),
@@ -206,18 +208,18 @@ class GithubClient:
             for raw in self.paginate(f"/repos/{repo}/pulls/{number}/commits")
         ]
 
-    def list_issue_comments(self, repo: str, number: int) -> list[Comment]:
+    def list_issue_comments(self, repo: str, number: int) -> list[CommentsResponse]:
         """List a PR's issue-comment stream from `/repos/{repo}/issues/{number}/comments`."""
         return self._list_comments(f"/repos/{repo}/issues/{number}/comments")
 
-    def list_review_comments(self, repo: str, number: int) -> list[Comment]:
+    def list_review_comments(self, repo: str, number: int) -> list[CommentsResponse]:
         """List a PR's review-comment stream from `/repos/{repo}/pulls/{number}/comments`."""
         return self._list_comments(f"/repos/{repo}/pulls/{number}/comments")
 
-    def _list_comments(self, url: str) -> list[Comment]:
-        """Paginate a comments endpoint into `Comment` response objects."""
+    def _list_comments(self, url: str) -> list[CommentsResponse]:
+        """Paginate a comments endpoint into `CommentsResponse` response objects."""
         return [
-            Comment(author_login=(raw.get("user") or {}).get("login"))
+            CommentsResponse(author_login=(raw.get("user") or {}).get("login"))
             for raw in self.paginate(url)
         ]
 

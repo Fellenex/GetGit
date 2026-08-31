@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 @dataclass
-class CommitPayload:
+class CommitsResponse:
     """One commit as returned by `/repos/{full_name}/commits`.
 
     A wire-shape response object: `GithubClient` flattens GitHub's nested

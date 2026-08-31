@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class RepoSummary:
+class ReposResponse:
     """One repository as returned by GitHub's repo-listing endpoints.
 
     A wire-shape response object (distinct from any internal domain

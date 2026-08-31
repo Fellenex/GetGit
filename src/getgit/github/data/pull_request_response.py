@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 @dataclass
-class PullRequestDetail:
+class PullRequestResponse:
     """A single PR as returned by `/repos/{repo}/pulls/{number}`.
 
     A wire-shape response object: it mirrors GitHub's fields (with the
