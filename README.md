@@ -302,14 +302,14 @@ Tests live under `tests/getgit/`, mirroring the package layout.
 
 ## Tasks
 
-If you have [Task](https://taskfile.dev) installed:
+If you have [Task](https://taskfile.dev) installed. The `startup-*` tasks run GetGit **in Docker** (via `docker compose run`), so they need the [one-time Docker setup](#one-time-setup) — `.env` with your PAT and `docker compose build`. `task test` runs the local pytest suite (see [Setup](#setup) for the `pip install` it needs).
 
 | Task              | What it does                                              |
 | ----------------- | --------------------------------------------------------- |
-| `task startup-tiny -- USERNAME` | Scrape `USERNAME` with `--max-commits 100 --max-prs 100` (cheap test run). |
-| `task startup -- USERNAME`      | Full scrape of `USERNAME` with no caps.                 |
-| `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo, no caps (one repo is small enough). |
-| `task test`         | Run the pytest suite.                                   |
+| `task startup-tiny -- USERNAME` | Scrape `USERNAME` in Docker with `--max-commits 100 --max-prs 100` (cheap test run). |
+| `task startup -- USERNAME`      | Full scrape of `USERNAME` in Docker, no caps.           |
+| `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo in Docker, no caps (one repo is small enough). |
+| `task test`         | Run the pytest suite (locally, not in Docker).          |
 
 ## Architecture and design decisions
 
