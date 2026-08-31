@@ -16,7 +16,9 @@
 # output/<username>/state.json checkpoint — persist on the host across runs.
 services:
   getgit:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     image: getgit:latest
     environment:
       # `:?` stops the run with a clear message if the token is unset, rather

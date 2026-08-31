@@ -132,6 +132,7 @@ Top-level directories and their responsibilities:
 | `src/` | The `getgit` package — all application code (see the per-subfolder breakdown below). |
 | `tests/` | The pytest suite, mirroring the package layout under `tests/getgit/`, plus reusable test doubles/fixtures under `tests/_support/`. |
 | `docs/` | Documentation assets. Currently the `architecture.drawio` dependency diagram (refreshed at each release tag). |
+| `docker/` | Docker build files — `Dockerfile` (runtime image), `dev.Dockerfile` (test image), and their per-Dockerfile `*.dockerignore` files. `docker-compose.yml` stays at the repo root. |
 | `.claude/` | Project process material — [`guidelines.md`](.claude/guidelines.md) (roadmap, architecture, conventions) and [`architecturalDecisions.md`](.claude/architecturalDecisions.md) (the chronological ADR log). |
 
 Source is organized by **domain**, not by technical layer. Each subfolder under `src/getgit/` is a domain with an `__init__.py` that re-exports its public types:
@@ -293,23 +294,33 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 
 ## Tests
 
+Locally:
+
 ```bash
 pip install -e ".[dev]"
 pytest
+```
+
+Or in Docker, with no local Python/venv — this builds a dev image that ships the suite ([`docker/dev.Dockerfile`](docker/dev.Dockerfile)) and runs pytest inside it:
+
+```bash
+task test
+# equivalently:
+docker build -f docker/dev.Dockerfile -t getgit-dev . && docker run --rm getgit-dev
 ```
 
 Tests live under `tests/getgit/`, mirroring the package layout.
 
 ## Tasks
 
-If you have [Task](https://taskfile.dev) installed. The `startup-*` tasks run GetGit **in Docker** (via `docker compose run`), so they need the [one-time Docker setup](#one-time-setup) — `.env` with your PAT and `docker compose build`. `task test` runs the local pytest suite (see [Setup](#setup) for the `pip install` it needs).
+If you have [Task](https://taskfile.dev) installed. All tasks run **in Docker**, so they only need Docker (plus, for the `startup-*` tasks, the [one-time setup](#one-time-setup) of `.env` with your PAT). The `startup-*` tasks use `docker compose run`; `task test` builds the dev image and runs the suite inside it.
 
 | Task              | What it does                                              |
 | ----------------- | --------------------------------------------------------- |
 | `task startup-tiny -- USERNAME` | Scrape `USERNAME` in Docker with `--max-commits 100 --max-prs 100` (cheap test run). |
 | `task startup -- USERNAME`      | Full scrape of `USERNAME` in Docker, no caps.           |
 | `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo in Docker, no caps (one repo is small enough). |
-| `task test`         | Run the pytest suite (locally, not in Docker).          |
+| `task test`         | Build the dev image (tests + dev deps) and run the pytest suite inside it. |
 
 ## Architecture and design decisions
 

@@ -21,6 +21,7 @@ tasks:
       - docker compose run --rm getgit {{.CLI_ARGS}}
 
   test:
-    desc: Run the pytest suite.
+    desc: Build the dev image (tests + dev deps) and run the pytest suite inside it.
     cmds:
-      - pytest
+      - docker build -f docker/dev.Dockerfile -t getgit-dev .
+      - docker run --rm getgit-dev

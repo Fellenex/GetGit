@@ -1,0 +1,24 @@
+# Ignore file for docker/Dockerfile (the runtime image). BuildKit picks up a
+# `<dockerfile-path>.dockerignore` next to the Dockerfile in preference to a
+# context-root `.dockerignore`; patterns are still relative to the build
+# context (the project root). Keep this image lean and secret-free — notably
+# tests/ is excluded here (the dev image keeps it; see dev.Dockerfile.dockerignore).
+.git
+.github
+.idea
+.vscode
+.pytest_cache
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+# Never bake the operator's token or their scraped output into the image.
+.env
+output/
+.venv/
+venv/
+# Not needed to build or run the runtime image.
+tests/
+docs/
+docker/
