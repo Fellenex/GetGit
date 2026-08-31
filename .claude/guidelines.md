@@ -33,7 +33,7 @@ The current source layout, by domain:
 ```
 src/getgit/
 ├── application/           # UI-agnostic orchestration
-│   ├── data/              #   AppSettings, UserState, ExitCode
+│   ├── data/              #   AppSettings, ScrapeSettings, UserState, ExitCode
 │   ├── main.py            #   run(settings) — the entry point providers and exporters share
 │   ├── user_state_repository.py  # file-backed UserState load/save
 │   └── user_state_service.py     # UserState load/advance/save coordination

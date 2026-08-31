@@ -137,7 +137,7 @@ Source is organized by **domain**, not by technical layer. Each subfolder under 
 
 | `src/getgit/` subfolder | Responsibility |
 | --- | --- |
-| `application/` | UI-agnostic orchestration. `run(settings)` is the shared entry point (`main.py`); also holds `AppSettings`/`UserState` (`data/`) and the `UserStateStore` checkpoint repository. |
+| `application/` | UI-agnostic orchestration. `run(app_settings, scrape_settings)` is the shared entry point (`main.py`); also holds `AppSettings` (cross-scrape: `out_dir`, `access_token`) and `ScrapeSettings` (per-scrape: `username`, caps, `target_repo`) plus `UserState` (`data/`) and the `UserStateStore` checkpoint repository. |
 | `authentication/` | `GithubSettings` — the passive auth config carrier (`auth_token`, `base_url`, `timeout`). |
 | `cli/` | Phase-1 command-line entry point: `ArgumentParser` and `main()`. |
 | `exporting/` | Report output. `Writer` protocol (`interfaces/`), `ReportService` (`services/`), `CsvWriter`, and the JSON file handler. |

@@ -1,9 +1,8 @@
-"""Tests for GithubService — verifies it threads AppSettings into each provider."""
+"""Tests for GithubService — verifies it threads ScrapeSettings into each provider."""
 
-from pathlib import Path
 from unittest.mock import Mock, patch
 
-from getgit.application import AppSettings
+from getgit.application import ScrapeSettings
 from getgit.github import (
     CommitProvider,
     GithubClient,
@@ -14,18 +13,16 @@ from getgit.github import (
 )
 
 
-def _settings(**overrides) -> AppSettings:
-    """Build an `AppSettings` with reasonable defaults for service tests."""
+def _settings(**overrides) -> ScrapeSettings:
+    """Build a `ScrapeSettings` with reasonable defaults for service tests."""
     base = dict(
         username="alice",
-        out_dir=Path("output"),
         max_commits=None,
         max_prs=None,
         fetch_extensions=True,
-        access_token="t",
     )
     base.update(overrides)
-    return AppSettings(**base)
+    return ScrapeSettings(**base)
 
 
 def _make_service(**setting_overrides):
@@ -75,7 +72,7 @@ def test_fetch_repositories_passes_username_and_is_self():
 
 
 def test_fetch_pull_requests_threads_settings_through():
-    """max_prs and fetch_extensions should be propagated from AppSettings."""
+    """max_prs and fetch_extensions should be propagated from ScrapeSettings."""
     service, _, prs, _ = _make_service(max_prs=10, fetch_extensions=False)
 
     service.fetch_pull_requests()

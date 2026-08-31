@@ -4,26 +4,27 @@ from pathlib import Path
 
 import pytest
 
-from getgit.application import AppSettings, ExitCode, run
+from getgit.application import AppSettings, ExitCode, ScrapeSettings, run
 from getgit.github import RepositoryAccessError
 
 
-def _settings_without_token() -> AppSettings:
-    """Build an `AppSettings` with no token — used to assert validation fires."""
-    return AppSettings(
+def _scrape_settings(**overrides) -> ScrapeSettings:
+    """Build a `ScrapeSettings` with reasonable defaults for run() tests."""
+    base = dict(
         username="alice",
-        out_dir=Path("output"),
         max_commits=None,
         max_prs=None,
         fetch_extensions=True,
-        access_token=None,
     )
+    base.update(overrides)
+    return ScrapeSettings(**base)
 
 
 def test_run_raises_when_access_token_missing():
     """Missing access token should fail fast before any HTTP work."""
+    app_settings = AppSettings(out_dir=Path("output"), access_token=None)
     with pytest.raises(RuntimeError, match="access token"):
-        run(_settings_without_token())
+        run(app_settings, _scrape_settings())
 
 
 class _FakeClient:
@@ -66,17 +67,10 @@ def test_run_reports_repository_access_error_with_exit_3(monkeypatch, tmp_path, 
     monkeypatch.setattr("getgit.application.main.GithubClient", _FakeClient)
     monkeypatch.setattr("getgit.application.main.GithubService", _FakeService)
 
-    settings = AppSettings(
-        username="alice",
-        out_dir=tmp_path,
-        max_commits=None,
-        max_prs=None,
-        fetch_extensions=True,
-        access_token="tok",
-        target_repo="octocat/hello-world",
-    )
+    app_settings = AppSettings(out_dir=tmp_path, access_token="tok")
+    scrape_settings = _scrape_settings(target_repo="octocat/hello-world")
 
-    code = run(settings)
+    code = run(app_settings, scrape_settings)
 
     assert code is ExitCode.REPOSITORY_ACCESS_ERROR
     err = capsys.readouterr().err

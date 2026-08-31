@@ -2,17 +2,17 @@
 
 from datetime import datetime
 
-from ...application import AppSettings
+from ...application import ScrapeSettings
 from ..clients import GithubClient
 from ..data import Commit, PullRequestFetchResult
 from ..providers import CommitProvider, PullRequestProvider, RepoProvider
 
 
 class GithubService:
-    """Bundles per-resource providers with the shared `AppSettings`.
+    """Bundles per-resource providers with the shared `ScrapeSettings`.
 
-    Callers see one object instead of three; `AppSettings` is wired in
-    once at construction so each call site stops re-threading
+    Callers see one object instead of three; `ScrapeSettings` is wired
+    in once at construction so each call site stops re-threading
     `username`, `max_*`, and `fetch_extensions`. Each provider still
     talks to the same `GithubClient` it was constructed with — the
     service is a coordinator, not a new transport.
@@ -23,7 +23,7 @@ class GithubService:
         repo_provider: RepoProvider,
         pull_request_provider: PullRequestProvider,
         commit_provider: CommitProvider,
-        settings: AppSettings,
+        settings: ScrapeSettings,
     ):
         """Bind the three providers and the settings they all draw from."""
         self._repo_provider = repo_provider
@@ -32,11 +32,11 @@ class GithubService:
         self._settings = settings
 
     @classmethod
-    def build(cls, client: GithubClient, settings: AppSettings) -> "GithubService":
+    def build(cls, client: GithubClient, settings: ScrapeSettings) -> "GithubService":
         """Compose a `GithubService` and its three providers from a live client.
 
         The composition root for the GitHub domain: callers hand over a
-        `GithubClient` and `AppSettings` and get back a fully wired
+        `GithubClient` and `ScrapeSettings` and get back a fully wired
         service without importing or constructing the individual
         providers themselves.
         """

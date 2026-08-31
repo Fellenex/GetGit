@@ -1,4 +1,4 @@
-"""Runtime configuration produced by the CLI's argument parser."""
+"""Cross-scrape runtime configuration produced by the CLI's argument parser."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -6,19 +6,17 @@ from pathlib import Path
 
 @dataclass
 class AppSettings:
-    """All inputs required to run a GetGit scrape.
+    """The config that stays stable across many scrapes.
 
-    Constructed by `ArgumentParser.parse(...)` and passed into the
-    orchestration in `cli.entrypoint`. Keeping these as a frozen-ish data
-    object instead of a bag of locals makes it trivial to swap argparse
-    for an HTTP form (phase 2) or a JSON request body (phase 3) — the
-    fetcher pipeline only ever sees this struct.
+    Holds only the values a long-lived process or scheduler sets once
+    and reuses for every run — the storage destination and the auth
+    token. The per-scrape parameters (username, caps, target repo) live
+    in `ScrapeSettings` instead. This is the stable layer the guidelines
+    anticipate: "the auth-token source and the storage destination are
+    the only layers expected to change between phases" — the CLI reads
+    the token from `GITHUB_TOKEN`; phase 2's HTTP entry point will
+    populate it from OAuth.
     """
 
-    username: str
     out_dir: Path
-    max_commits: int | None
-    max_prs: int | None
-    fetch_extensions: bool
-    access_token: str | None
-    target_repo: str | None = None
+    access_token: str | None = None
