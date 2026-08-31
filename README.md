@@ -137,11 +137,10 @@ Source is organized by **domain**, not by technical layer. Each subfolder under 
 
 | `src/getgit/` subfolder | Responsibility |
 | --- | --- |
-| `application/` | UI-agnostic orchestration. `run(settings)` is the shared entry point (`main.py`); also holds `AppSettings`/`UserState` (`data/`) and the `UserStateStore` checkpoint repository. |
-| `authentication/` | `GithubSettings` — the passive auth config carrier (`auth_token`, `base_url`, `timeout`). |
-| `cli/` | Phase-1 command-line entry point: `ArgumentParser` and `main()`. |
-| `exporting/` | Report output. `Writer` protocol (`interfaces/`), `ReportService` (`services/`), `CsvWriter`, and the JSON file handler. |
-| `github/` | Everything GitHub-specific: `GithubClient` (`clients/`), the `Commit`/`PullRequest`/`Review` data models (`data/`), the per-resource scrapers (`providers/`), and `GithubService`, the facade over them (`services/`). |
+| `application/` | UI-agnostic orchestration. `run(settings)` is the shared entry point (`main.py`); also holds `AppSettings`/`UserState`/`ExitCode` (`data/`), the file-backed `UserStateRepository` checkpoint, and `UserStateService` (the watermark load/advance/save coordinator over it). |
+| `cli/` | Phase-1 command-line entry point (`entrypoint.py`): `ArgumentParser` and `main()`. |
+| `exporting/` | Report output. `Writer` protocol (`interfaces/`), `ReportService` (`services/`), `CsvWriter`, and the `JSONFileHandler`. |
+| `github/` | Everything GitHub-specific: `GithubClient`, `GithubSettings`, and the `RateLimitExceededError`/`RepositoryAccessError` exceptions (`clients/`); the `Commit`/`PullRequest`/`Review` data models plus `AuthorshipReport` and `PullRequestFetchResult` (`data/`); the per-resource scrapers (`providers/`); and `GithubService`, the facade over them (`services/`). |
 | `infrastructure/` | Cross-cutting building blocks: `JSONModel` (`data/`) and `IsoDateParser` (`dates/`). |
 
 ## Output
