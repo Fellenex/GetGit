@@ -15,7 +15,6 @@ A tool for scraping GitHub authorship data — commits, pull requests, and assoc
   - [Resumable runs (checkpoint)](#resumable-runs-checkpoint)
 - [API cost](#api-cost)
 - [Tests](#tests)
-- [Tasks](#tasks)
 - [Architecture and design decisions](#architecture-and-design-decisions)
 
 ## Status
@@ -83,7 +82,7 @@ cp .env.example .env       # then edit .env and paste your PAT into GITHUB_TOKEN
 docker compose build
 ```
 
-`docker compose` auto-loads `.env`, so `GITHUB_TOKEN` reaches the container without any extra flags. The token is **never** baked into the image — it's read from the environment at run time. (If `GITHUB_TOKEN` is unset, the run stops immediately with a message instead of failing later as a GitHub 401.)
+`docker compose` auto-loads `.env` and provides `GITHUB_TOKEN` to the container via the service's `env_file`, so it's **never** baked into the image — it's read at run time. If `.env` doesn't exist, compose stops with an "env file not found" error, so create it first.
 
 ### Running a scrape
 
@@ -109,19 +108,18 @@ docker compose up
 
 ### Where the output goes
 
-The container writes to `/app/output`, which is bind-mounted to the host's `./output`. After a run you'll find, on the host:
+The container writes to `/app/output`, which is bind-mounted to the host's `./output` — so run files and the resumable checkpoint land on the host and persist across runs (a second run resumes from the previous watermark, exactly like the local CLI). See the [Output](#output) section for the full layout. Don't override `--out` to a path outside `/app/output`, or the files won't reach the host.
 
-```
-output/
-└── <username>/
-    ├── state.json                       # checkpoint — reused on the next run
-    └── <generated_at>/
-        ├── commits.json
-        ├── commits.csv
-        └── … (one JSON + CSV per collection)
-```
+### Task shortcuts
 
-Because `output/<username>/state.json` lives on the mounted volume, a second `docker compose run` resumes from the previous run's watermark — the same incremental behavior as the local CLI. Don't override `--out` to a path outside `/app/output`, or the files won't reach the host.
+If you have [Task](https://taskfile.dev) installed, these wrap the commands above. All of them run **in Docker**, so they only need Docker (plus, for the `startup-*` tasks, the [one-time setup](#one-time-setup) of `.env` with your PAT). The `startup-*` tasks use `docker compose run`; `task test` builds and runs the dev image ([`docker/dev.Dockerfile`](docker/dev.Dockerfile)) — see [Tests](#tests).
+
+| Task              | What it does                                              |
+| ----------------- | --------------------------------------------------------- |
+| `task startup-tiny -- USERNAME` | Scrape `USERNAME` in Docker with `--max-commits 100 --max-prs 100` (cheap test run). |
+| `task startup -- USERNAME`      | Full scrape of `USERNAME` in Docker, no caps.           |
+| `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo in Docker, no caps (one repo is small enough). |
+| `task test`         | Build the dev image (tests + dev deps) and run the pytest suite inside it. |
 
 ## Code layout
 
@@ -305,23 +303,12 @@ Or in Docker, with no local Python/venv — this builds a dev image that ships t
 
 ```bash
 task test
-# equivalently — `isTest` flips the compose service to the dev Dockerfile;
-# GITHUB_TOKEN only satisfies the compose guard (tests never authenticate):
-isTest=1 GITHUB_TOKEN=not-used-by-tests docker compose run --build --rm getgit pytest
+# equivalently — `--env-file .env.tests` flips the compose service to the dev
+# Dockerfile and supplies fake credentials (the suite never authenticates):
+docker compose --env-file .env.tests run --build --rm getgit pytest
 ```
 
-Tests live under `tests/getgit/`, mirroring the package layout.
-
-## Tasks
-
-If you have [Task](https://taskfile.dev) installed. All tasks run **in Docker**, so they only need Docker (plus, for the `startup-*` tasks, the [one-time setup](#one-time-setup) of `.env` with your PAT). The `startup-*` tasks use `docker compose run`; `task test` builds the dev image and runs the suite inside it.
-
-| Task              | What it does                                              |
-| ----------------- | --------------------------------------------------------- |
-| `task startup-tiny -- USERNAME` | Scrape `USERNAME` in Docker with `--max-commits 100 --max-prs 100` (cheap test run). |
-| `task startup -- USERNAME`      | Full scrape of `USERNAME` in Docker, no caps.           |
-| `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo in Docker, no caps (one repo is small enough). |
-| `task test`         | Build the dev image (tests + dev deps) and run the pytest suite inside it. |
+Tests live under `tests/getgit/`, mirroring the package layout. (The `task` shortcuts, including `task test`, are listed under [Run with Docker → Task shortcuts](#task-shortcuts).)
 
 ## Architecture and design decisions
 

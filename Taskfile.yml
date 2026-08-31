@@ -22,10 +22,7 @@ tasks:
 
   test:
     desc: Build the dev image (tests + dev deps) via compose and run the pytest suite inside it.
-    # isTest flips the compose service to docker/dev.Dockerfile. GITHUB_TOKEN is
-    # only set to satisfy the compose token guard — the suite never authenticates.
-    env:
-      isTest: '1'
-      GITHUB_TOKEN: not-used-by-tests
+    # --env-file .env.tests sets IS_TEST (which flips the service to the dev
+    # image) and supplies fake credentials — no real token, no raw env vars here.
     cmds:
-      - docker compose run --build --rm getgit pytest
+      - docker compose --env-file .env.tests run --build --rm getgit pytest

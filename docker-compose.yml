@@ -10,29 +10,30 @@
 #     GETGIT_ARGS="octocat --max-prs 100"   # in .env or the shell
 #     docker compose up
 #
-# The token is read from GITHUB_TOKEN (compose auto-loads it from .env; see
-# .env.example). The host ./output directory is mounted so a run's files —
-# output/<username>/<generated_at>/*.json|csv and the resumable
-# output/<username>/state.json checkpoint — persist on the host across runs.
+# The host ./output directory is mounted so a run's files persist on the host —
+# see the "Output" section of the README for the layout.
 #
-# Test mode: set isTest (to any non-empty value) and the service builds the dev
-# image (docker/dev.Dockerfile, which ships tests/) under a distinct tag instead
-# of the runtime image. `task test` uses this; see its recipe in Taskfile.yml.
+# Mode is driven by IS_TEST, which lives in the env files (not a raw shell var):
+#   - normal runs: compose auto-loads .env; IS_TEST is empty there -> runtime
+#     image (docker/Dockerfile), real token from .env.
+#   - `task test`: passes `--env-file .env.tests`, where IS_TEST is set -> dev
+#     image (docker/dev.Dockerfile, which ships tests/), fake token from .env.tests.
 services:
   getgit:
     build:
       context: .
-      # isTest set -> docker/dev.Dockerfile (test image); unset -> docker/Dockerfile
-      # (runtime image). `${isTest:+dev.}` expands to "dev." only when isTest is
-      # set and non-empty — Compose has no ternary, so this is the switch.
-      dockerfile: docker/${isTest:+dev.}Dockerfile
+      # IS_TEST set -> docker/dev.Dockerfile (test image); empty/unset ->
+      # docker/Dockerfile (runtime image). `${IS_TEST:+dev.}` expands to "dev."
+      # only when IS_TEST is non-empty — Compose has no ternary, so this is the switch.
+      dockerfile: docker/${IS_TEST:+dev.}Dockerfile
     # Distinct tag per mode so building the dev image never clobbers the runtime
     # image cached under getgit:latest (and vice versa).
-    image: getgit${isTest:+-dev}:latest
-    environment:
-      # `:?` stops the run with a clear message if the token is unset, rather
-      # than letting an empty token surface later as a raw GitHub 401.
-      GITHUB_TOKEN: ${GITHUB_TOKEN:?GITHUB_TOKEN is not set — copy .env.example to .env and paste your PAT (or export GITHUB_TOKEN)}
+    image: getgit${IS_TEST:+-dev}:latest
+    # Pick the container's env file by the same switch: runtime -> .env (your real
+    # token), test -> .env.tests (committed fake values). Compose errors clearly
+    # if the chosen file is missing, which is the "did you create .env?" guard.
+    env_file:
+      - .env${IS_TEST:+.tests}
     volumes:
       # Host ./output <-> container /app/output (the CLI's default --out).
       - ./output:/app/output
