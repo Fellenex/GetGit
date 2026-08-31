@@ -1,4 +1,4 @@
-"""CLI entry point — turns argv into an `AppSettings` and hands off to `application.run`."""
+"""CLI entry point — turns argv into the settings pair and hands off to `application.run`."""
 
 from dotenv import load_dotenv
 
@@ -13,8 +13,8 @@ def main(argv: list[str] | None = None) -> int:
     so argparse reads `sys.argv`. Returns a process exit code.
     """
     load_dotenv()
-    settings = ArgumentParser().parse(argv)
-    return run(settings)
+    app_settings, scrape_settings = ArgumentParser().parse(argv)
+    return run(app_settings, scrape_settings)
 
 
 if __name__ == "__main__":

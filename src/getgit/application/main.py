@@ -1,10 +1,11 @@
-"""UI-agnostic orchestration: run the scrape pipeline against an `AppSettings`.
+"""UI-agnostic orchestration: run the scrape pipeline against the settings pair.
 
-The CLI calls `run(settings)` after parsing argv. Phase 2's FastAPI
-endpoint will call the same `run(settings)` after building an
-`AppSettings` from the request. Anything specific to one entry point
-(argparse, environment loading, HTTP request decoding) lives outside
-this module.
+The CLI calls `run(app_settings, scrape_settings)` after parsing argv.
+Phase 2's FastAPI endpoint will call the same `run(...)` after building
+both settings objects from the request — the stable `AppSettings` (out
+dir + token) and the per-request `ScrapeSettings`. Anything specific to
+one entry point (argparse, environment loading, HTTP request decoding)
+lives outside this module.
 """
 
 import sys
@@ -20,12 +21,12 @@ from ..github import (
     RateLimitExceededError,
     RepositoryAccessError,
 )
-from .data import AppSettings, ExitCode
+from .data import AppSettings, ExitCode, ScrapeSettings
 from .user_state_repository import UserStateRepository
 from .user_state_service import UserStateService
 
 
-def run(settings: AppSettings) -> ExitCode:
+def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
     """Execute the full scrape and write the report to disk.
 
     Returns an `ExitCode` (an `IntEnum`, so it doubles as the process
@@ -39,7 +40,7 @@ def run(settings: AppSettings) -> ExitCode:
       can't see it. Fails fast with a clean message (no report written,
       no traceback).
 
-    Raises `RuntimeError` if `settings.access_token` is missing —
+    Raises `RuntimeError` if `app_settings.access_token` is missing —
     failing fast here beats discovering it mid-scrape via a 401 from
     GitHub.
 
@@ -51,7 +52,7 @@ def run(settings: AppSettings) -> ExitCode:
     they intentionally do *not* advance, so the next run re-fetches
     the same window.
     """
-    if not settings.access_token:
+    if not app_settings.access_token:
         raise RuntimeError(
             "No GitHub access token in AppSettings. "
             "Set GITHUB_TOKEN (CLI) or supply an OAuth token (web)."
@@ -59,7 +60,9 @@ def run(settings: AppSettings) -> ExitCode:
 
     started_at = datetime.now(timezone.utc)
     state_service = UserStateService(
-        UserStateRepository(settings.out_dir, settings.username, JSONFileHandler())
+        UserStateRepository(
+            app_settings.out_dir, scrape_settings.username, JSONFileHandler()
+        )
     )
     state = state_service.load_current_state()
     print(state.describe_resume(), file=sys.stderr)
@@ -69,23 +72,23 @@ def run(settings: AppSettings) -> ExitCode:
     commits: list[Commit] = []
     partial = False
 
-    github_settings = GithubSettings(auth_token=settings.access_token)
+    github_settings = GithubSettings(auth_token=app_settings.access_token)
     try:
         with GithubClient(github_settings) as client:
             viewer = client.viewer_login()
-            is_self = viewer.lower() == settings.username.lower()
+            is_self = viewer.lower() == scrape_settings.username.lower()
 
             print(
-                f"Viewer: {viewer} | Target: {settings.username} | Self: {is_self}",
+                f"Viewer: {viewer} | Target: {scrape_settings.username} | Self: {is_self}",
                 file=sys.stderr,
             )
 
-            github = GithubService.build(client, settings)
+            github = GithubService.build(client, scrape_settings)
 
-            if settings.target_repo:
-                repos = [{"full_name": settings.target_repo}]
+            if scrape_settings.target_repo:
+                repos = [{"full_name": scrape_settings.target_repo}]
                 print(
-                    f"Targeting single repo: {settings.target_repo} (skipping repo discovery)",
+                    f"Targeting single repo: {scrape_settings.target_repo} (skipping repo discovery)",
                     file=sys.stderr,
                 )
             else:
@@ -119,10 +122,10 @@ def run(settings: AppSettings) -> ExitCode:
         print("Saving partial report from data collected so far.", file=sys.stderr)
 
     paths = ReportService().write_report(
-        settings.username,
+        scrape_settings.username,
         commits,
         pr_result,
-        settings.out_dir,
+        app_settings.out_dir,
         generated_at=datetime.now(timezone.utc),
     )
     for label, p in paths.items():

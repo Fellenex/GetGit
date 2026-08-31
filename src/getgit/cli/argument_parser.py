@@ -1,14 +1,14 @@
-"""CLI argument parsing — wraps argparse and produces an `AppSettings`."""
+"""CLI argument parsing — wraps argparse and produces the settings pair."""
 
 import argparse
 import os
 from pathlib import Path
 
-from ..application import AppSettings
+from ..application import AppSettings, ScrapeSettings
 
 
 class ArgumentParser:
-    """Parses GetGit's CLI arguments into an `AppSettings`.
+    """Parses GetGit's CLI arguments into an `(AppSettings, ScrapeSettings)` pair.
 
     Owns the argparse configuration so `cli.entrypoint` doesn't have to. The
     standard library's `argparse.ArgumentParser` is held as a private
@@ -51,21 +51,28 @@ class ArgumentParser:
         )
         self._parser = parser
 
-    def parse(self, argv: list[str] | None = None) -> AppSettings:
-        """Parse `argv` (or `sys.argv` when `None`) and return an `AppSettings`.
+    def parse(
+        self, argv: list[str] | None = None
+    ) -> tuple[AppSettings, ScrapeSettings]:
+        """Parse `argv` (or `sys.argv` when `None`) into the settings pair.
 
-        The GitHub access token comes from the `GITHUB_TOKEN` env var —
-        the CLI is the only entry point that reads it from the
-        environment. Phase 2's HTTP entry point will populate
-        `access_token` from the OAuth flow instead.
+        Returns the stable `AppSettings` (out dir + token) and the
+        per-scrape `ScrapeSettings` (username, caps, target repo). The
+        GitHub access token comes from the `GITHUB_TOKEN` env var — the
+        CLI is the only entry point that reads it from the environment.
+        Phase 2's HTTP entry point will populate `access_token` from the
+        OAuth flow instead.
         """
         ns = self._parser.parse_args(argv)
-        return AppSettings(
-            username=ns.username,
+        app_settings = AppSettings(
             out_dir=Path(ns.out),
+            access_token=os.environ.get("GITHUB_TOKEN"),
+        )
+        scrape_settings = ScrapeSettings(
+            username=ns.username,
             max_commits=ns.max_commits,
             max_prs=ns.max_prs,
             fetch_extensions=not ns.no_extension_breakdown,
-            access_token=os.environ.get("GITHUB_TOKEN"),
             target_repo=ns.repo,
         )
+        return app_settings, scrape_settings
