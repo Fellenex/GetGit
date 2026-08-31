@@ -110,12 +110,13 @@ Today: JSON + CSV files written by `ReportService` (in `exporting/`) to a per-ru
 
 A `.drawio` dependency diagram lives at [`docs/architecture.drawio`](../docs/architecture.drawio). It shows every source file/class as a box, organized in left-to-right columns: **Client → Endpoint → Service → Repository → Source / Models**.
 
+**The diagram is generated, not hand-drawn.** [`docs/generate_architecture.py`](../docs/generate_architecture.py) emits `architecture.drawio` from a declarative box/edge spec (the `COLUMNS` and `EDGES` tables at the top of the file). Layout — box heights, y-positions, which side each arrow leaves/enters, fan-out spacing — is computed from that spec so the constraints below hold by construction. Edit the spec, don't nudge geometry in a drawio editor (a hand edit is lost the next time the script runs). Layout invariants the script enforces: cross-column edges exit the **right** side of the source and enter the **left** side of the target; boxes grow tall enough to fan all their arrows on that short side; single-user classes sit as satellites immediately right of their one user.
+
 **Update cadence:** the diagram is refreshed only when a new `git tag` is cut (e.g. `v0.1.2`, `v0.2.0`), not on every commit. Updating it per commit would be expensive upkeep relative to the value, and most readers care about the architecture as it stood at a release boundary. When tagging a new version:
 
-1. Open `docs/architecture.drawio` in [diagrams.net](https://app.diagrams.net) (or any drawio editor).
-2. Add/remove boxes and arrows so the diagram matches the current source tree.
-3. Re-verify the layout constraints — every box ≥80px from its neighbours, no arrow overlaps any box or other arrow, columns left-to-right by responsibility.
-4. Commit the updated diagram in the same commit as the version bump (the one being tagged).
+1. Edit the `COLUMNS`/`EDGES` spec in [`docs/generate_architecture.py`](../docs/generate_architecture.py) so it matches the current source tree, then run `python docs/generate_architecture.py`.
+2. Verify the result: no two boxes overlap (≥70px apart within a column), and no edge segment passes through a non-endpoint box. The long cross-column diagonals are routed explicitly in the script's pass 3 — re-check those if you move columns.
+3. Commit both the script change and the regenerated `architecture.drawio` in the same commit as the version bump (the one being tagged).
 
 If you discover the diagram is stale mid-cycle (something already shipped that isn't reflected), wait for the next tag — don't rush a one-off update.
 
