@@ -9,12 +9,12 @@ A tool for scraping GitHub authorship data — commits, pull requests, and assoc
 - [Status](#status)
 - [Data collected](#data-collected)
 - [Setup](#setup)
+- [Run with Docker](#run-with-docker)
 - [Code layout](#code-layout)
 - [Output](#output)
   - [Resumable runs (checkpoint)](#resumable-runs-checkpoint)
 - [API cost](#api-cost)
 - [Tests](#tests)
-- [Tasks](#tasks)
 - [Architecture and design decisions](#architecture-and-design-decisions)
 
 ## Status
@@ -71,6 +71,56 @@ When `<username>` matches the authenticated user, repo discovery covers everythi
 - **Classic PAT** — needs `repo` scope **and** SSO authorization for the org (Settings → Developer settings → Tokens (classic) → the token → Configure SSO → Authorize).
 - **Fine-grained PAT** — the org must be the resource owner and approve the token.
 
+## Run with Docker
+
+If you'd rather not set up a local Python/venv, the same scrape runs in a container — you only need Docker. The image's entry point is `python -m getgit`, so **every CLI flag above works identically**; the host `./output` directory is mounted into the container, so a run's files land on your machine and the resumable [checkpoint](#resumable-runs-checkpoint) persists across runs.
+
+### One-time setup
+
+```bash
+cp .env.example .env       # then edit .env and paste your PAT into GITHUB_TOKEN
+docker compose build
+```
+
+`docker compose` auto-loads `.env` and provides `GITHUB_TOKEN` to the container via the service's `env_file`, so it's **never** baked into the image — it's read at run time. If `.env` doesn't exist, compose stops with an "env file not found" error, so create it first.
+
+### Running a scrape
+
+Pass CLI args exactly as you would locally, after the service name:
+
+```bash
+docker compose run --rm getgit <username> [--max-commits N] [--max-prs N] [--no-extension-breakdown] [--repo OWNER/NAME]
+```
+
+`--rm` removes the one-off container when the run exits. Examples:
+
+```bash
+docker compose run --rm getgit octocat --max-commits 100 --max-prs 100
+docker compose run --rm getgit octocat --repo octocat/hello-world
+```
+
+Alternatively, fix the arguments in `.env` as `GETGIT_ARGS` and use `docker compose up`:
+
+```bash
+# in .env (or the shell):  GETGIT_ARGS=octocat --max-prs 100
+docker compose up
+```
+
+### Where the output goes
+
+The container writes to `/app/output`, which is bind-mounted to the host's `./output` — so run files and the resumable checkpoint land on the host and persist across runs (a second run resumes from the previous watermark, exactly like the local CLI). See the [Output](#output) section for the full layout. Don't override `--out` to a path outside `/app/output`, or the files won't reach the host.
+
+### Task shortcuts
+
+If you have [Task](https://taskfile.dev) installed, these wrap the commands above. All of them run **in Docker**, so they only need Docker (plus, for the `startup-*` tasks, the [one-time setup](#one-time-setup) of `.env` with your PAT). The `startup-*` tasks use `docker compose run`; `task test` builds and runs the dev image ([`docker/dev.Dockerfile`](docker/dev.Dockerfile)) — see [Tests](#tests).
+
+| Task              | What it does                                              |
+| ----------------- | --------------------------------------------------------- |
+| `task startup-tiny -- USERNAME` | Scrape `USERNAME` in Docker with `--max-commits 100 --max-prs 100` (cheap test run). |
+| `task startup -- USERNAME`      | Full scrape of `USERNAME` in Docker, no caps.           |
+| `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo in Docker, no caps (one repo is small enough). |
+| `task test`         | Build the dev image (tests + dev deps) and run the pytest suite inside it. |
+
 ## Code layout
 
 Top-level directories and their responsibilities:
@@ -80,6 +130,7 @@ Top-level directories and their responsibilities:
 | `src/` | The `getgit` package — all application code (see the per-subfolder breakdown below). |
 | `tests/` | The pytest suite, mirroring the package layout under `tests/getgit/`, plus reusable test doubles/fixtures under `tests/_support/`. |
 | `docs/` | Documentation assets. Currently the `architecture.drawio` dependency diagram (refreshed at each release tag). |
+| `docker/` | Docker build files — `Dockerfile` (runtime image) and `dev.Dockerfile` (test image). `docker-compose.yml` and the shared `.dockerignore` stay at the repo root. |
 | `.claude/` | Project process material — [`guidelines.md`](.claude/guidelines.md) (roadmap, architecture, conventions) and [`architecturalDecisions.md`](.claude/architecturalDecisions.md) (the chronological ADR log). |
 
 Source is organized by **domain**, not by technical layer. Each subfolder under `src/getgit/` is a domain with an `__init__.py` that re-exports its public types:
@@ -241,23 +292,23 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 
 ## Tests
 
+Locally:
+
 ```bash
 pip install -e ".[dev]"
 pytest
 ```
 
-Tests live under `tests/getgit/`, mirroring the package layout.
+Or in Docker, with no local Python/venv — this builds a dev image that ships the suite ([`docker/dev.Dockerfile`](docker/dev.Dockerfile)) and runs pytest inside it:
 
-## Tasks
+```bash
+task test
+# equivalently — `--env-file .env.tests` flips the compose service to the dev
+# Dockerfile and supplies fake credentials (the suite never authenticates):
+docker compose --env-file .env.tests run --build --rm getgit pytest
+```
 
-If you have [Task](https://taskfile.dev) installed:
-
-| Task              | What it does                                              |
-| ----------------- | --------------------------------------------------------- |
-| `task startup-tiny -- USERNAME` | Scrape `USERNAME` with `--max-commits 100 --max-prs 100` (cheap test run). |
-| `task startup -- USERNAME`      | Full scrape of `USERNAME` with no caps.                 |
-| `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo, no caps (one repo is small enough). |
-| `task test`         | Run the pytest suite.                                   |
+Tests live under `tests/getgit/`, mirroring the package layout. (The `task` shortcuts, including `task test`, are listed under [Run with Docker → Task shortcuts](#task-shortcuts).)
 
 ## Architecture and design decisions
 

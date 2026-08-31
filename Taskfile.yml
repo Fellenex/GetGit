@@ -1,22 +1,37 @@
 version: '3'
 
+# The startup-* tasks run GetGit in Docker (see the "Run with Docker" section
+# of the README). One-time setup: `cp .env.example .env` (paste your PAT), then
+# `docker compose build`. `docker compose run` builds the image automatically if
+# it's missing; rebuild after code changes with `docker compose build`.
 tasks:
   startup-tiny:
-    desc: 'Scrape USERNAME with small caps for cheap test runs (100 commits, 100 PRs). Usage: task startup-tiny -- USERNAME'
+    desc: 'Scrape USERNAME in Docker with small caps for cheap test runs (100 commits, 100 PRs). Usage: task startup-tiny -- USERNAME'
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: 'Pass a GitHub username after `--`, e.g. `task startup-tiny -- USERNAME`.'
     cmds:
-      - python -m getgit {{.CLI_ARGS}} --max-commits 100 --max-prs 100
+      - docker compose run --rm getgit {{.CLI_ARGS}} --max-commits 100 --max-prs 100
 
   startup:
-    desc: 'Full scrape of USERNAME — no caps. Usage: task startup -- USERNAME'
+    desc: 'Full scrape of USERNAME in Docker — no caps. Usage: task startup -- USERNAME'
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: 'Pass a GitHub username after `--`, e.g. `task startup -- USERNAME`.'
     cmds:
-      - python -m getgit {{.CLI_ARGS}}
+      - docker compose run --rm getgit {{.CLI_ARGS}}
 
   startup-repo:
-    desc: 'Scrape USERNAME within a single repo, no caps (one repo is small enough). Usage: task startup-repo -- USERNAME --repo OWNER/NAME'
+    desc: 'Scrape USERNAME within a single repo in Docker, no caps (one repo is small enough). Usage: task startup-repo -- USERNAME --repo OWNER/NAME'
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: 'Pass a username and repo after `--`, e.g. `task startup-repo -- USERNAME --repo OWNER/NAME`.'
     cmds:
-      - python -m getgit {{.CLI_ARGS}}
+      - docker compose run --rm getgit {{.CLI_ARGS}}
 
   test:
-    desc: Run the pytest suite.
+    desc: Build the dev image (tests + dev deps) via compose and run the pytest suite inside it.
+    # --env-file .env.tests sets IS_TEST (which flips the service to the dev
+    # image) and supplies fake credentials — no real token, no raw env vars here.
     cmds:
-      - pytest
+      - docker compose --env-file .env.tests run --build --rm getgit pytest

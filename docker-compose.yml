@@ -1,0 +1,43 @@
+# GetGit container service (v0.3.0 — packaging/reproducibility).
+#
+# Two ways to run:
+#
+#   Pass CLI args ad hoc (mirrors the README invocations exactly):
+#     docker compose run --rm getgit <username> [--max-commits N] [--max-prs N] \
+#                                    [--no-extension-breakdown] [--repo OWNER/NAME]
+#
+#   Or fix the args in .env as GETGIT_ARGS and run detached-style:
+#     GETGIT_ARGS="octocat --max-prs 100"   # in .env or the shell
+#     docker compose up
+#
+# The host ./output directory is mounted so a run's files persist on the host —
+# see the "Output" section of the README for the layout.
+#
+# Mode is driven by IS_TEST, which lives in the env files (not a raw shell var):
+#   - normal runs: compose auto-loads .env; IS_TEST is empty there -> runtime
+#     image (docker/Dockerfile), real token from .env.
+#   - `task test`: passes `--env-file .env.tests`, where IS_TEST is set -> dev
+#     image (docker/dev.Dockerfile, which ships tests/), fake token from .env.tests.
+services:
+  getgit:
+    build:
+      context: .
+      # IS_TEST set -> docker/dev.Dockerfile (test image); empty/unset ->
+      # docker/Dockerfile (runtime image). `${IS_TEST:+dev.}` expands to "dev."
+      # only when IS_TEST is non-empty — Compose has no ternary, so this is the switch.
+      dockerfile: docker/${IS_TEST:+dev.}Dockerfile
+    # Distinct tag per mode so building the dev image never clobbers the runtime
+    # image cached under getgit:latest (and vice versa).
+    image: getgit${IS_TEST:+-dev}:latest
+    # Pick the container's env file by the same switch: runtime -> .env (your real
+    # token), test -> .env.tests (committed fake values). Compose errors clearly
+    # if the chosen file is missing, which is the "did you create .env?" guard.
+    env_file:
+      - .env${IS_TEST:+.tests}
+    volumes:
+      # Host ./output <-> container /app/output (the CLI's default --out).
+      - ./output:/app/output
+    # Used by `docker compose up`; `docker compose run` overrides it with the
+    # args after the service name. Defaults to empty, so a bare `up` prints
+    # argparse's "username is required" rather than failing at config parse.
+    command: ${GETGIT_ARGS:-}
