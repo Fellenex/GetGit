@@ -9,6 +9,7 @@ A tool for scraping GitHub authorship data — commits, pull requests, and assoc
 - [Status](#status)
 - [Data collected](#data-collected)
 - [Setup](#setup)
+- [Run with Docker](#run-with-docker)
 - [Code layout](#code-layout)
 - [Output](#output)
   - [Resumable runs (checkpoint)](#resumable-runs-checkpoint)
@@ -70,6 +71,57 @@ When `<username>` matches the authenticated user, repo discovery covers everythi
 
 - **Classic PAT** — needs `repo` scope **and** SSO authorization for the org (Settings → Developer settings → Tokens (classic) → the token → Configure SSO → Authorize).
 - **Fine-grained PAT** — the org must be the resource owner and approve the token.
+
+## Run with Docker
+
+If you'd rather not set up a local Python/venv, the same scrape runs in a container — you only need Docker. The image's entry point is `python -m getgit`, so **every CLI flag above works identically**; the host `./output` directory is mounted into the container, so a run's files land on your machine and the resumable [checkpoint](#resumable-runs-checkpoint) persists across runs.
+
+### One-time setup
+
+```bash
+cp .env.example .env       # then edit .env and paste your PAT into GITHUB_TOKEN
+docker compose build
+```
+
+`docker compose` auto-loads `.env`, so `GITHUB_TOKEN` reaches the container without any extra flags. The token is **never** baked into the image — it's read from the environment at run time. (If `GITHUB_TOKEN` is unset, the run stops immediately with a message instead of failing later as a GitHub 401.)
+
+### Running a scrape
+
+Pass CLI args exactly as you would locally, after the service name:
+
+```bash
+docker compose run --rm getgit <username> [--max-commits N] [--max-prs N] [--no-extension-breakdown] [--repo OWNER/NAME]
+```
+
+`--rm` removes the one-off container when the run exits. Examples:
+
+```bash
+docker compose run --rm getgit octocat --max-commits 100 --max-prs 100
+docker compose run --rm getgit octocat --repo octocat/hello-world
+```
+
+Alternatively, fix the arguments in `.env` as `GETGIT_ARGS` and use `docker compose up`:
+
+```bash
+# in .env (or the shell):  GETGIT_ARGS=octocat --max-prs 100
+docker compose up
+```
+
+### Where the output goes
+
+The container writes to `/app/output`, which is bind-mounted to the host's `./output`. After a run you'll find, on the host:
+
+```
+output/
+└── <username>/
+    ├── state.json                       # checkpoint — reused on the next run
+    └── <generated_at>/
+        ├── commits.json
+        ├── commits.csv
+        └── … (one JSON + CSV per collection)
+```
+
+Because `output/<username>/state.json` lives on the mounted volume, a second `docker compose run` resumes from the previous run's watermark — the same incremental behavior as the local CLI. Don't override `--out` to a path outside `/app/output`, or the files won't reach the host.
 
 ## Code layout
 

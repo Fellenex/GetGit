@@ -1,0 +1,31 @@
+# GetGit container service (v0.3.0 — packaging/reproducibility).
+#
+# Two ways to run:
+#
+#   Pass CLI args ad hoc (mirrors the README invocations exactly):
+#     docker compose run --rm getgit <username> [--max-commits N] [--max-prs N] \
+#                                    [--no-extension-breakdown] [--repo OWNER/NAME]
+#
+#   Or fix the args in .env as GETGIT_ARGS and run detached-style:
+#     GETGIT_ARGS="octocat --max-prs 100"   # in .env or the shell
+#     docker compose up
+#
+# The token is read from GITHUB_TOKEN (compose auto-loads it from .env; see
+# .env.example). The host ./output directory is mounted so a run's files —
+# output/<username>/<generated_at>/*.json|csv and the resumable
+# output/<username>/state.json checkpoint — persist on the host across runs.
+services:
+  getgit:
+    build: .
+    image: getgit:latest
+    environment:
+      # `:?` stops the run with a clear message if the token is unset, rather
+      # than letting an empty token surface later as a raw GitHub 401.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:?GITHUB_TOKEN is not set — copy .env.example to .env and paste your PAT (or export GITHUB_TOKEN)}
+    volumes:
+      # Host ./output <-> container /app/output (the CLI's default --out).
+      - ./output:/app/output
+    # Used by `docker compose up`; `docker compose run` overrides it with the
+    # args after the service name. Defaults to empty, so a bare `up` prints
+    # argparse's "username is required" rather than failing at config parse.
+    command: ${GETGIT_ARGS:-}
