@@ -1,7 +1,5 @@
-"""GitHub providers — per-resource scrapers built on the client."""
+"""GitHub provider — unravels client response objects into domain objects."""
 
-from .commit_provider import CommitProvider
-from .pull_request_provider import PullRequestProvider
-from .repo_provider import RepoProvider
+from .github_provider import GithubProvider
 
-__all__ = ["CommitProvider", "PullRequestProvider", "RepoProvider"]
+__all__ = ["GithubProvider"]

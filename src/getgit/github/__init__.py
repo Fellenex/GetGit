@@ -20,7 +20,7 @@ from .data import (
     RepoSummary,
     Review,
 )
-from .providers import CommitProvider, PullRequestProvider, RepoProvider
+from .providers import GithubProvider
 from .services import GithubService
 
 __all__ = [
@@ -28,8 +28,8 @@ __all__ = [
     "Comment",
     "Commit",
     "CommitPayload",
-    "CommitProvider",
     "GithubClient",
+    "GithubProvider",
     "GithubService",
     "GithubSettings",
     "IssueSearchResult",
@@ -37,10 +37,8 @@ __all__ = [
     "PullRequestDetail",
     "PullRequestFetchResult",
     "PullRequestFile",
-    "PullRequestProvider",
     "PullRequestReview",
     "RateLimitExceededError",
-    "RepoProvider",
     "RepoSummary",
     "RepositoryAccessError",
     "Review",
