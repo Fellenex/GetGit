@@ -14,12 +14,21 @@
 # .env.example). The host ./output directory is mounted so a run's files —
 # output/<username>/<generated_at>/*.json|csv and the resumable
 # output/<username>/state.json checkpoint — persist on the host across runs.
+#
+# Test mode: set isTest (to any non-empty value) and the service builds the dev
+# image (docker/dev.Dockerfile, which ships tests/) under a distinct tag instead
+# of the runtime image. `task test` uses this; see its recipe in Taskfile.yml.
 services:
   getgit:
     build:
       context: .
-      dockerfile: docker/Dockerfile
-    image: getgit:latest
+      # isTest set -> docker/dev.Dockerfile (test image); unset -> docker/Dockerfile
+      # (runtime image). `${isTest:+dev.}` expands to "dev." only when isTest is
+      # set and non-empty — Compose has no ternary, so this is the switch.
+      dockerfile: docker/${isTest:+dev.}Dockerfile
+    # Distinct tag per mode so building the dev image never clobbers the runtime
+    # image cached under getgit:latest (and vice versa).
+    image: getgit${isTest:+-dev}:latest
     environment:
       # `:?` stops the run with a clear message if the token is unset, rather
       # than letting an empty token surface later as a raw GitHub 401.

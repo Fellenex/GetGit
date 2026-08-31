@@ -132,7 +132,7 @@ Top-level directories and their responsibilities:
 | `src/` | The `getgit` package — all application code (see the per-subfolder breakdown below). |
 | `tests/` | The pytest suite, mirroring the package layout under `tests/getgit/`, plus reusable test doubles/fixtures under `tests/_support/`. |
 | `docs/` | Documentation assets. Currently the `architecture.drawio` dependency diagram (refreshed at each release tag). |
-| `docker/` | Docker build files — `Dockerfile` (runtime image), `dev.Dockerfile` (test image), and their per-Dockerfile `*.dockerignore` files. `docker-compose.yml` stays at the repo root. |
+| `docker/` | Docker build files — `Dockerfile` (runtime image) and `dev.Dockerfile` (test image). `docker-compose.yml` and the shared `.dockerignore` stay at the repo root. |
 | `.claude/` | Project process material — [`guidelines.md`](.claude/guidelines.md) (roadmap, architecture, conventions) and [`architecturalDecisions.md`](.claude/architecturalDecisions.md) (the chronological ADR log). |
 
 Source is organized by **domain**, not by technical layer. Each subfolder under `src/getgit/` is a domain with an `__init__.py` that re-exports its public types:
@@ -305,8 +305,9 @@ Or in Docker, with no local Python/venv — this builds a dev image that ships t
 
 ```bash
 task test
-# equivalently:
-docker build -f docker/dev.Dockerfile -t getgit-dev . && docker run --rm getgit-dev
+# equivalently — `isTest` flips the compose service to the dev Dockerfile;
+# GITHUB_TOKEN only satisfies the compose guard (tests never authenticate):
+isTest=1 GITHUB_TOKEN=not-used-by-tests docker compose run --build --rm getgit pytest
 ```
 
 Tests live under `tests/getgit/`, mirroring the package layout.

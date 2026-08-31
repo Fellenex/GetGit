@@ -21,7 +21,11 @@ tasks:
       - docker compose run --rm getgit {{.CLI_ARGS}}
 
   test:
-    desc: Build the dev image (tests + dev deps) and run the pytest suite inside it.
+    desc: Build the dev image (tests + dev deps) via compose and run the pytest suite inside it.
+    # isTest flips the compose service to docker/dev.Dockerfile. GITHUB_TOKEN is
+    # only set to satisfy the compose token guard — the suite never authenticates.
+    env:
+      isTest: '1'
+      GITHUB_TOKEN: not-used-by-tests
     cmds:
-      - docker build -f docker/dev.Dockerfile -t getgit-dev .
-      - docker run --rm getgit-dev
+      - docker compose run --build --rm getgit pytest
