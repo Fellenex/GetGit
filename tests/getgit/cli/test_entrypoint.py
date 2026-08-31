@@ -15,7 +15,7 @@ def test_main_calls_application_run_with_parsed_settings(monkeypatch):
         captured["settings"] = settings
         return 0
 
-    with patch("getgit.cli.main.run", side_effect=fake_run) as mocked:
+    with patch("getgit.cli.entrypoint.run", side_effect=fake_run) as mocked:
         rc = main(["alice", "--max-prs", "3"])
 
     assert rc == 0
@@ -30,5 +30,5 @@ def test_main_returns_runs_exit_code(monkeypatch):
     """Whatever run() returns is what main() returns."""
     monkeypatch.setenv("GITHUB_TOKEN", "t")
 
-    with patch("getgit.cli.main.run", return_value=42):
+    with patch("getgit.cli.entrypoint.run", return_value=42):
         assert main(["alice"]) == 42

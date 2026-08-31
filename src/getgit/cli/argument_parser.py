@@ -10,7 +10,7 @@ from ..application import AppSettings
 class ArgumentParser:
     """Parses GetGit's CLI arguments into an `AppSettings`.
 
-    Owns the argparse configuration so `cli.main` doesn't have to. The
+    Owns the argparse configuration so `cli.entrypoint` doesn't have to. The
     standard library's `argparse.ArgumentParser` is held as a private
     field rather than subclassed — composition keeps the public surface
     (`parse`) tiny and avoids inheriting argparse internals we don't
