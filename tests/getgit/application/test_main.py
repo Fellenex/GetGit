@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from getgit.application import AppSettings, run
+from getgit.application import AppSettings, ExitCode, run
 from getgit.github import RepositoryAccessError
 
 
@@ -78,7 +78,7 @@ def test_run_reports_repository_access_error_with_exit_3(monkeypatch, tmp_path, 
 
     code = run(settings)
 
-    assert code == 3
+    assert code is ExitCode.REPOSITORY_ACCESS_ERROR
     err = capsys.readouterr().err
     assert "octocat/hello-world" in err
     assert not any(tmp_path.glob("alice/**/*.json"))

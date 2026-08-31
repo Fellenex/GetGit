@@ -33,11 +33,10 @@ The current source layout, by domain:
 ```
 src/getgit/
 ├── application/           # UI-agnostic orchestration
-│   ├── data/              #   AppSettings, UserState
+│   ├── data/              #   AppSettings, UserState, ExitCode
 │   ├── main.py            #   run(settings) — the entry point providers and exporters share
 │   ├── user_state_repository.py  # file-backed UserState load/save
 │   └── user_state_service.py     # UserState load/advance/save coordination
-├── authentication/        # GithubSettings (auth_token, base_url, timeout)
 ├── cli/                   # ArgumentParser, main()
 ├── exporting/             # Writers + JSON file handler + report orchestration
 │   ├── interfaces/        #   Writer protocol
@@ -45,8 +44,7 @@ src/getgit/
 │   ├── csv_writer.py      #   CsvWriter
 │   └── json_file_handler.py
 ├── github/                # Everything GitHub-specific
-│   ├── clients/           #   GithubClient, RateLimitExceededError
-│   ├── data/              #   Commit, PullRequest, Review, AuthorshipReport, PullRequestFetchResult
+│   ├── clients/           #   GithubClient, GithubSettings, RateLimitExceededError, RepositoryAccessError
 │   ├── providers/         #   CommitProvider, PullRequestProvider, RepoProvider
 │   └── services/          #   GithubService (facade over the providers)
 └── infrastructure/        # Cross-cutting building blocks
@@ -56,7 +54,7 @@ src/getgit/
 
 ### Authentication
 
-`GithubSettings(auth_token, base_url, timeout)` is the only auth concept — a passive config carrier. There is no `Auth` protocol or `PersonalTokenAuth` strategy class; both were removed once it became clear the only artifact every implementation produced was a string token. The token enters via `AppSettings.access_token` (CLI reads `GITHUB_TOKEN` from env; phase 2's HTTP entry point will populate it from OAuth).
+`GithubSettings(auth_token, base_url, timeout)` is the only auth concept — a passive config carrier. It lives in `github/clients/` next to the `GithubClient` it configures (there is no separate `authentication/` domain — a one-class domain wasn't earning its place; see [ADR-052]). There is no `Auth` protocol or `PersonalTokenAuth` strategy class; both were removed once it became clear the only artifact every implementation produced was a string token. The token enters via `AppSettings.access_token` (CLI reads `GITHUB_TOKEN` from env; phase 2's HTTP entry point will populate it from OAuth).
 
 ### Self vs stranger scope
 
@@ -73,7 +71,7 @@ Per-resource scrapers, each taking a `GithubClient` in its constructor:
 
 ### Storage / cache
 
-Today: JSON + CSV files written by `ReportService` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. `ReportService.generate_report(...)` assembles the `AuthorshipReport` from the collected pieces and `write_report(...)` persists it, so `application.run` neither constructs the model nor knows the file layout (see [ADR-049]). Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateRepository` (in `application/`). `UserStateService` sits over the repository and owns the watermark *transition* logic (`load_current_state()` / `save_new_state(...)`), so `application.run` deals in domain operations rather than raw load/save plus arithmetic; the repository stays pure file I/O (see [ADR-051]). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
+Today: JSON + CSV files written by `ReportService` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. `ReportService.write_report(username, commits, pr_result, out_dir, *, generated_at)` is the sole entry point: it assembles the `AuthorshipReport` from the collected pieces (via a private `_generate_report`) and persists it, so `application.run` neither constructs the model nor knows the file layout (see [ADR-049], [ADR-052]). Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateRepository` (in `application/`). `UserStateService` sits over the repository and owns the watermark *transition* logic (`load_current_state()` / `save_new_state(...)`), so `application.run` deals in domain operations rather than raw load/save plus arithmetic; the repository stays pure file I/O (see [ADR-051]). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
 
 ## Tech choices
 

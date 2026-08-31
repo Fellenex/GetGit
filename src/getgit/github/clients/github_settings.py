@@ -1,4 +1,4 @@
-"""Configuration for the GitHub HTTP client."""
+"""Configuration for the GitHub HTTP client — lives beside the client it configures."""
 
 from dataclasses import dataclass
 

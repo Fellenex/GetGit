@@ -11,7 +11,7 @@ import httpx
 
 import pytest
 
-from getgit.authentication import GithubSettings
+from getgit.github import GithubSettings
 from getgit.github import GithubClient, RateLimitExceededError
 
 

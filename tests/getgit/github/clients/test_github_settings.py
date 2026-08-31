@@ -1,6 +1,6 @@
 """Tests for GithubSettings."""
 
-from getgit.authentication import GithubSettings
+from getgit.github import GithubSettings
 
 
 def test_defaults_for_base_url_and_timeout():

@@ -17,7 +17,58 @@ class ReportService:
     inject a `ParquetWriter`, etc.
     """
 
-    def generate_report(
+    def write_report(
+        self,
+        username: str,
+        commits: list[Commit],
+        pr_result: PullRequestFetchResult,
+        out_dir: Path,
+        *,
+        generated_at: datetime,
+    ) -> dict[str, Path]:
+        """Assemble the report from the scrape pieces and write it to disk.
+
+        The only `ReportService` method the orchestrator calls: it
+        assembles an `AuthorshipReport` from `commits` + `pr_result`
+        (stamped with the caller-supplied `generated_at`) and writes
+        each top-level collection as both JSON and CSV.
+
+        Files land in a per-run subdirectory:
+        `<out_dir>/<username>/<generated_at>/<collection>.{json,csv}`.
+        The timestamp uses `%Y-%m-%d_T%H-%M-%S` (hyphens, no colons) so
+        the path is valid on every filesystem we care about. The
+        username + timestamp in the path captures the metadata that
+        used to live at the top of the unified JSON.
+
+        Returns a dict of `{label: path}` for everything written.
+        Existing files in the same per-run directory are overwritten.
+        """
+        report = self._generate_report(
+            username, commits, pr_result, generated_at=generated_at
+        )
+
+        base_dir = out_dir / report.username / report.generated_at.strftime(
+            "%Y-%m-%d_T%H-%M-%S"
+        )
+        base_dir.mkdir(parents=True, exist_ok=True)
+
+        csv_writer = CsvWriter()
+        json_handler = JSONFileHandler()
+
+        collections = {
+            "commits": report.commits,
+            "authored_pull_requests": report.authored_pull_requests,
+            "participated_pull_requests": report.participated_pull_requests,
+            "reviews": report.reviews,
+        }
+
+        paths: dict[str, Path] = {}
+        for name, items in collections.items():
+            paths[f"{name}_json"] = json_handler.write(items, base_dir / f"{name}.json")
+            paths[f"{name}_csv"] = csv_writer.write(items, base_dir / f"{name}.csv")
+        return paths
+
+    def _generate_report(
         self,
         username: str,
         commits: list[Commit],
@@ -40,37 +91,3 @@ class ReportService:
             participated_pull_requests=pr_result.participated,
             reviews=pr_result.reviews,
         )
-
-    def write_report(self, report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
-        """Write each top-level collection in `report` as both JSON and CSV.
-
-        Files land in a per-run subdirectory:
-        `<out_dir>/<username>/<generated_at>/<collection>.{json,csv}`.
-        The timestamp uses `%Y-%m-%d_T%H-%M-%S` (hyphens, no colons) so
-        the path is valid on every filesystem we care about. The
-        username + timestamp in the path captures the metadata that
-        used to live at the top of the unified JSON.
-
-        Returns a dict of `{label: path}` for everything written.
-        Existing files in the same per-run directory are overwritten.
-        """
-        base_dir = out_dir / report.username / report.generated_at.strftime(
-            "%Y-%m-%d_T%H-%M-%S"
-        )
-        base_dir.mkdir(parents=True, exist_ok=True)
-
-        csv_writer = CsvWriter()
-        json_handler = JSONFileHandler()
-
-        collections = {
-            "commits": report.commits,
-            "authored_pull_requests": report.authored_pull_requests,
-            "participated_pull_requests": report.participated_pull_requests,
-            "reviews": report.reviews,
-        }
-
-        paths: dict[str, Path] = {}
-        for name, items in collections.items():
-            paths[f"{name}_json"] = json_handler.write(items, base_dir / f"{name}.json")
-            paths[f"{name}_csv"] = csv_writer.write(items, base_dir / f"{name}.csv")
-        return paths

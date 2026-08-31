@@ -10,31 +10,34 @@ this module.
 import sys
 from datetime import datetime, timezone
 
-from ..authentication import GithubSettings
 from ..exporting import JSONFileHandler, ReportService
 from ..github import (
     Commit,
     GithubClient,
     GithubService,
+    GithubSettings,
     PullRequestFetchResult,
     RateLimitExceededError,
     RepositoryAccessError,
 )
-from .data import AppSettings
+from .data import AppSettings, ExitCode
 from .user_state_repository import UserStateRepository
 from .user_state_service import UserStateService
 
 
-def run(settings: AppSettings) -> int:
+def run(settings: AppSettings) -> ExitCode:
     """Execute the full scrape and write the report to disk.
 
-    Returns a process exit code:
-    - `0` on full success.
-    - `2` on partial save — a 403 was hit mid-scrape and the report was
-      written from whatever data was collected so far.
-    - `3` when a `--repo`-scoped search returns 422 — the target repo
-      doesn't exist or the token can't see it. Fails fast with a clean
-      message (no report written, no traceback).
+    Returns an `ExitCode` (an `IntEnum`, so it doubles as the process
+    exit status):
+    - `ExitCode.SUCCESS` (`0`) on full success.
+    - `ExitCode.PARTIAL` (`2`) on partial save — a 403 was hit
+      mid-scrape and the report was written from whatever data was
+      collected so far.
+    - `ExitCode.REPOSITORY_ACCESS_ERROR` (`3`) when a `--repo`-scoped
+      search returns 422 — the target repo doesn't exist or the token
+      can't see it. Fails fast with a clean message (no report written,
+      no traceback).
 
     Raises `RuntimeError` if `settings.access_token` is missing —
     failing fast here beats discovering it mid-scrape via a 401 from
@@ -108,21 +111,20 @@ def run(settings: AppSettings) -> int:
             print(f"Found {len(commits)} commits", file=sys.stderr)
     except RepositoryAccessError as e:
         print(f"Error: {e}", file=sys.stderr)
-        return 3
+        return ExitCode.REPOSITORY_ACCESS_ERROR
     except RateLimitExceededError as e:
         partial = True
         print(f"Hit rate limit: {e}", file=sys.stderr)
         repos, pr_result, commits = _absorb_partial(e.partial, repos, pr_result, commits)
         print("Saving partial report from data collected so far.", file=sys.stderr)
 
-    report_service = ReportService()
-    report = report_service.generate_report(
+    paths = ReportService().write_report(
         settings.username,
         commits,
         pr_result,
+        settings.out_dir,
         generated_at=datetime.now(timezone.utc),
     )
-    paths = report_service.write_report(report, settings.out_dir)
     for label, p in paths.items():
         print(f"Wrote {label}: {p}")
 
@@ -131,7 +133,7 @@ def run(settings: AppSettings) -> int:
     )
     print(f"Updated user state: {state_path}", file=sys.stderr)
 
-    return 2 if partial else 0
+    return ExitCode.PARTIAL if partial else ExitCode.SUCCESS
 
 
 def _absorb_partial(
