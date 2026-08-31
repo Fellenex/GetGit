@@ -45,7 +45,7 @@ def test_paginate_yields_a_single_page_array():
     """When there's no `next` link, we get every item from the one response."""
     c = _client_with([_resp([{"a": 1}, {"a": 2}])])
 
-    assert list(c.paginate("/x")) == [{"a": 1}, {"a": 2}]
+    assert list(c._paginate("/x")) == [{"a": 1}, {"a": 2}]
 
 
 def test_paginate_follows_next_link_across_pages():
@@ -54,14 +54,14 @@ def test_paginate_follows_next_link_across_pages():
     page2 = _resp([{"n": 2}, {"n": 3}])
     c = _client_with([page1, page2])
 
-    assert list(c.paginate("/x")) == [{"n": 1}, {"n": 2}, {"n": 3}]
+    assert list(c._paginate("/x")) == [{"n": 1}, {"n": 2}, {"n": 3}]
 
 
 def test_paginate_handles_search_envelope():
     """`/search/...` endpoints wrap results under `items` — we should unwrap."""
     c = _client_with([_resp({"total_count": 2, "items": [{"a": 1}, {"a": 2}]})])
 
-    assert list(c.paginate("/search/issues", {"q": "type:pr"})) == [{"a": 1}, {"a": 2}]
+    assert list(c._paginate("/search/issues", {"q": "type:pr"})) == [{"a": 1}, {"a": 2}]
 
 
 def test_paginate_sets_per_page_default_on_first_call_only():
@@ -70,7 +70,7 @@ def test_paginate_sets_per_page_default_on_first_call_only():
     page2 = _resp([{"n": 2}])
     c = _client_with([page1, page2])
 
-    list(c.paginate("/x"))
+    list(c._paginate("/x"))
 
     assert c._http.get.call_args_list[0].args == ("/x",)
     assert c._http.get.call_args_list[0].kwargs == {"params": {"per_page": 100}}
@@ -91,11 +91,11 @@ def test_primary_rate_limit_403_locks_and_raises():
     c = _client_with([_resp([], status=403, headers={"X-RateLimit-Remaining": "0"})])
 
     with pytest.raises(RateLimitExceededError):
-        list(c.paginate("/x"))
+        list(c._paginate("/x"))
 
     # Client is now locked — the next call is refused without touching the network.
     with pytest.raises(RateLimitExceededError):
-        list(c.paginate("/y"))
+        list(c._paginate("/y"))
 
 
 def test_secondary_rate_limit_403_with_retry_after_locks_and_raises():
@@ -103,7 +103,7 @@ def test_secondary_rate_limit_403_with_retry_after_locks_and_raises():
     c = _client_with([_resp([], status=403, headers={"Retry-After": "60"})])
 
     with pytest.raises(RateLimitExceededError):
-        list(c.paginate("/x"))
+        list(c._paginate("/x"))
 
 
 def test_access_403_surfaces_as_http_error_without_locking():
@@ -114,10 +114,10 @@ def test_access_403_surfaces_as_http_error_without_locking():
     c = _client_with([access_denied, later_ok])
 
     with pytest.raises(httpx.HTTPStatusError):
-        list(c.paginate("/repos/org/private/commits"))
+        list(c._paginate("/repos/org/private/commits"))
 
     # Not locked: a subsequent call to another endpoint succeeds.
-    assert list(c.paginate("/x")) == [{"n": 1}]
+    assert list(c._paginate("/x")) == [{"n": 1}]
 
 
 # --- Typed endpoint methods ---------------------------------------------------

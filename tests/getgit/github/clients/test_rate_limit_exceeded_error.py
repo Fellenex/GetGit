@@ -40,7 +40,7 @@ def test_paginate_raises_on_first_403():
     ])
 
     with pytest.raises(RateLimitExceededError, match="rate limit"):
-        list(c.paginate("/x"))
+        list(c._paginate("/x"))
 
 
 def test_get_raises_on_403():
@@ -48,7 +48,7 @@ def test_get_raises_on_403():
     c = _client_with([_resp({"message": "forbidden"}, status=403, headers=_RATE_LIMITED)])
 
     with pytest.raises(RateLimitExceededError):
-        c.get("/x")
+        c._get("/x")
 
 
 def test_subsequent_calls_short_circuit_without_hitting_network():
@@ -56,15 +56,15 @@ def test_subsequent_calls_short_circuit_without_hitting_network():
     c = _client_with([_resp({"message": "rate-limited"}, status=403, headers=_RATE_LIMITED)])
 
     with pytest.raises(RateLimitExceededError):
-        c.get("/first")
+        c._get("/first")
 
     # The mock has no more queued responses; if we hit it we'd get StopIteration,
     # so any extra _http call after the lock would surface as something other
     # than RateLimitExceededError.
     with pytest.raises(RateLimitExceededError):
-        c.get("/second")
+        c._get("/second")
     with pytest.raises(RateLimitExceededError):
-        list(c.paginate("/third"))
+        list(c._paginate("/third"))
 
 
 def test_error_message_includes_github_response_message():
@@ -78,12 +78,12 @@ def test_error_message_includes_github_response_message():
     ])
 
     with pytest.raises(RateLimitExceededError, match="API rate limit exceeded for foo"):
-        c.get("/x")
+        c._get("/x")
 
 
 def test_non_403_responses_do_not_lock_the_client():
     """A 200 followed by a successful call should both pass."""
     c = _client_with([_resp({"a": 1}), _resp({"b": 2})])
 
-    assert c.get("/first").status_code == 200
-    assert c.get("/second").status_code == 200
+    assert c._get("/first").status_code == 200
+    assert c._get("/second").status_code == 200

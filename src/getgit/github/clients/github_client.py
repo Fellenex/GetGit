@@ -56,41 +56,9 @@ class GithubClient:
         """Close the underlying HTTP client."""
         self._http.__exit__(*exc)
 
-    def get(self, url: str, params: dict | None = None) -> httpx.Response:
-        """Perform a single GET. Raises `RateLimitExceededError` on 403."""
-        self._guard_rate_limit()
-        response = self._http.get(url, params=params)
-        self._check_rate_limit(response)
-        return response
-
-    def paginate(self, url: str, params: dict | None = None) -> Iterator[dict]:
-        """Yield every item across all pages of a GitHub REST endpoint.
-
-        Follows the `Link: ...; rel="next"` header — works for both list
-        endpoints (which return arrays) and search endpoints (which wrap
-        results under `"items"`). Query params are sent on the first
-        request only; the `next` URL already contains them. Aborts (and
-        locks the client) on the first 403.
-        """
-        merged_params = dict(params or {})
-        merged_params.setdefault("per_page", 100)
-        next_url: str | None = url
-        next_params: dict | None = merged_params
-        while next_url:
-            self._guard_rate_limit()
-            resp = self._http.get(next_url, params=next_params)
-            self._check_rate_limit(resp)
-            resp.raise_for_status()
-            data = resp.json()
-            items = data["items"] if isinstance(data, dict) and "items" in data else data
-            for item in items:
-                yield item
-            next_url = resp.links.get("next", {}).get("url")
-            next_params = None
-
     def viewer_login(self) -> str:
         """Return the login of the user whose token is being used."""
-        resp = self.get("/user")
+        resp = self._get("/user")
         resp.raise_for_status()
         return resp.json()["login"]
 
@@ -104,7 +72,7 @@ class GithubClient:
         """
         return [
             RepoSummary(full_name=raw["full_name"])
-            for raw in self.paginate(
+            for raw in self._paginate(
                 "/user/repos",
                 {
                     "affiliation": "owner,collaborator,organization_member",
@@ -117,7 +85,7 @@ class GithubClient:
         """List the public repos owned by `username` (the stranger-scrape scope)."""
         return [
             RepoSummary(full_name=raw["full_name"])
-            for raw in self.paginate(f"/users/{username}/repos")
+            for raw in self._paginate(f"/users/{username}/repos")
         ]
 
     def search_issues(self, query: str) -> list[IssueSearchResult]:
@@ -132,7 +100,7 @@ class GithubClient:
                 repo_full_name=self._key_from_repo_url(issue["repository_url"]),
                 number=issue["number"],
             )
-            for issue in self.paginate("/search/issues", {"q": query})
+            for issue in self._paginate("/search/issues", {"q": query})
         ]
 
     def list_repo_commits(
@@ -153,12 +121,12 @@ class GithubClient:
                 authored_at=IsoDateParser.parse(raw["commit"]["author"]["date"]),
                 message=raw["commit"]["message"],
             )
-            for raw in self.paginate(f"/repos/{full_name}/commits", params)
+            for raw in self._paginate(f"/repos/{full_name}/commits", params)
         ]
 
     def get_pull_request(self, repo: str, number: int) -> PullRequestDetail:
         """Fetch one PR's detail from `/repos/{repo}/pulls/{number}`."""
-        resp = self.get(f"/repos/{repo}/pulls/{number}")
+        resp = self._get(f"/repos/{repo}/pulls/{number}")
         resp.raise_for_status()
         pr = resp.json()
         return PullRequestDetail(
@@ -182,7 +150,7 @@ class GithubClient:
                 additions=raw.get("additions", 0),
                 deletions=raw.get("deletions", 0),
             )
-            for raw in self.paginate(f"/repos/{repo}/pulls/{number}/files")
+            for raw in self._paginate(f"/repos/{repo}/pulls/{number}/files")
         ]
 
     def list_pull_request_reviews(
@@ -196,14 +164,14 @@ class GithubClient:
                 submitted_at=IsoDateParser.parse(raw.get("submitted_at")),
                 body=raw.get("body") or "",
             )
-            for raw in self.paginate(f"/repos/{repo}/pulls/{number}/reviews")
+            for raw in self._paginate(f"/repos/{repo}/pulls/{number}/reviews")
         ]
 
     def list_pull_request_commits(self, repo: str, number: int) -> list[str]:
         """List the commit SHAs on a PR from `/repos/{repo}/pulls/{number}/commits`."""
         return [
             raw["sha"]
-            for raw in self.paginate(f"/repos/{repo}/pulls/{number}/commits")
+            for raw in self._paginate(f"/repos/{repo}/pulls/{number}/commits")
         ]
 
     def list_issue_comments(self, repo: str, number: int) -> list[Comment]:
@@ -218,13 +186,55 @@ class GithubClient:
         """Paginate a comments endpoint into `Comment` response objects."""
         return [
             Comment(author_login=(raw.get("user") or {}).get("login"))
-            for raw in self.paginate(url)
+            for raw in self._paginate(url)
         ]
 
     @staticmethod
     def _key_from_repo_url(repo_url: str) -> str:
         """Convert `https://api.github.com/repos/owner/repo` → `owner/repo`."""
         return "/".join(repo_url.rsplit("/", 2)[-2:])
+
+    def _get(self, url: str, params: dict | None = None) -> httpx.Response:
+        """Perform a single GET. Raises `RateLimitExceededError` on a rate-limit 403.
+
+        A client-internal transport primitive: the typed endpoint methods
+        above are the public surface, and they delegate here (or to
+        `_paginate`) so route knowledge and pagination stay inside the
+        client.
+        """
+        self._guard_rate_limit()
+        response = self._http.get(url, params=params)
+        self._check_rate_limit(response)
+        return response
+
+    def _paginate(self, url: str, params: dict | None = None) -> Iterator[dict]:
+        """Yield every raw item across all pages of a GitHub REST endpoint.
+
+        Follows the `Link: ...; rel="next"` header — works for both list
+        endpoints (which return arrays) and search endpoints (which wrap
+        results under `"items"`). Query params are sent on the first
+        request only; the `next` URL already contains them. Aborts (and
+        locks the client) on the first 403.
+
+        Client-internal: the typed endpoint methods build response objects
+        from the raw dicts this yields; nothing outside the client
+        constructs route strings to feed it.
+        """
+        merged_params = dict(params or {})
+        merged_params.setdefault("per_page", 100)
+        next_url: str | None = url
+        next_params: dict | None = merged_params
+        while next_url:
+            self._guard_rate_limit()
+            resp = self._http.get(next_url, params=next_params)
+            self._check_rate_limit(resp)
+            resp.raise_for_status()
+            data = resp.json()
+            items = data["items"] if isinstance(data, dict) and "items" in data else data
+            for item in items:
+                yield item
+            next_url = resp.links.get("next", {}).get("url")
+            next_params = None
 
     def _guard_rate_limit(self) -> None:
         """Refuse to make a network call once a 403 has been seen."""
