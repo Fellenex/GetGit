@@ -43,10 +43,11 @@ src/getgit/
 │   ├── services/          #   ReportService
 │   ├── csv_writer.py      #   CsvWriter
 │   └── json_file_handler.py
-├── github/                # Everything GitHub-specific
-│   ├── clients/           #   GithubClient, GithubSettings, RateLimitExceededError, RepositoryAccessError
-│   ├── providers/         #   CommitProvider, PullRequestProvider, RepoProvider
-│   └── services/          #   GithubService (facade over the providers)
+├── github/                # Everything GitHub-specific (service → provider → client)
+│   ├── clients/           #   GithubClient (one typed endpoint method per route), GithubSettings, RateLimitExceededError, RepositoryAccessError
+│   ├── data/              #   wire response objects (RepoSummary, PullRequestDetail, …) + domain models (Commit/PullRequest/Review) + AuthorshipReport/GithubScrapeResult
+│   ├── providers/         #   GithubProvider (unravels response objects into domain objects)
+│   └── services/          #   GithubService (facade over client + provider)
 └── infrastructure/        # Cross-cutting building blocks
     ├── data/              #   JSONModel
     └── dates/             #   IsoDateParser
@@ -58,16 +59,20 @@ src/getgit/
 
 ### Self vs stranger scope
 
-The only client-side difference between scraping yourself and scraping a stranger lives in `RepoProvider.list_repos(username, is_self=...)`: `is_self=True` calls `/user/repos` with `affiliation=owner,collaborator,organization_member` (so org-owned and collaborator repos are discovered, not just owned ones — see [ADR-046]), `False` calls `/users/{u}/repos` (public owned repos only). Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
+The only client-side difference between scraping yourself and scraping a stranger lives in `GithubProvider.list_repos(username, is_self=...)`, which picks between two `GithubClient` endpoints: `is_self=True` → `list_own_repos()` (hits `/user/repos` with `affiliation=owner,collaborator,organization_member` so org-owned and collaborator repos are discovered, not just owned ones — see [ADR-046]); `is_self=False` → `list_user_repos(username)` (hits `/users/{u}/repos`, public owned repos only). Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
 
-### Providers (the `github/providers/` domain)
+### The GitHub domain layering: client → provider → service
 
-Per-resource scrapers, each taking a `GithubClient` in its constructor:
-- `RepoProvider` — `list_repos(username, is_self)`
-- `PullRequestProvider` — `fetch(username, limit, fetch_extensions, since)` returns a `PullRequestFetchResult`
-- `CommitProvider` — `fetch(repos, username, limit, pr_index, since_per_repo)` returns `list[Commit]`
+The domain reads top-to-bottom with one responsibility per layer (see [ADR-058], [ADR-059] — issue [#17](https://github.com/Fellenex/GetGit/issues/17)):
 
-`GithubService` (in `github/services/`) bundles the three providers + `AppSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`. Call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`. `GithubService.build(client, settings)` is the composition root for the domain: it constructs the three providers from one `GithubClient` so `application.run` never imports them (see [ADR-049]). `run` still owns the `GithubClient` lifecycle (the `with` block wraps the whole pipeline, including error handling).
+```
+main.py → GithubService → GithubProvider → GithubClient → GitHub REST
+          (orchestration)  (raw→domain)     (routes+transport)
+```
+
+- **`GithubClient` (`clients/`)** owns *every* GitHub route string, query-param shape, pagination call, and raw-JSON dict-key access. It exposes one typed method per route (`list_own_repos`, `list_user_repos`, `search_issues`, `list_repo_commits`, `get_pull_request`, `list_pull_request_{files,reviews,commits}`, `list_{issue,review}_comments`, `viewer_login`), each returning a **wire-shape response object** (`RepoSummary`, `IssueSearchResult`, `PullRequestDetail`, `PullRequestFile`, `PullRequestReview`, `Comment`, `CommitPayload`) with timestamps already parsed. `paginate`/`get` are private (`_paginate`/`_get`) — nothing outside the client constructs route strings. A rate-limit 403 still locks the client and raises `RateLimitExceededError`; a per-resource 403/404/409/422 surfaces as a plain `httpx.HTTPStatusError` for the caller to classify.
+- **`GithubProvider` (`providers/`)** is the single raw→domain layer (it replaced the former `RepoProvider`/`PullRequestProvider`/`CommitProvider`). It consumes response objects and emits the domain `Commit`/`PullRequest`/`Review` objects, holding all business logic (JIRA extraction, extension breakdown, self-vs-stranger scope, comment counting, commit→PR index, `merged`/comment-sum derivations, search-query composition) and the partial-result/skip/422 error contract — but no route strings. `fetch_pull_requests(...)` returns a `GithubScrapeResult`; `fetch_commits(...)` returns `list[Commit]`; `list_repos(...)` returns `list[RepoSummary]`.
+- **`GithubService` (`services/`)** bundles a `GithubProvider` + `ScrapeSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`, so call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`. `GithubService.build(client, settings)` is the composition root: it constructs the `GithubProvider` from one `GithubClient` so `application.run` never imports it (see [ADR-049]). `run` still owns the `GithubClient` lifecycle (the `with` block wraps the whole pipeline, including error handling).
 
 ### Storage / cache
 
@@ -86,8 +91,8 @@ Today: JSON + CSV files written by `ReportService` (in `exporting/`) to a per-ru
 - Authenticated REST: 5,000 req/hr.
 - Search API (`/search/commits`, `/search/issues`): 30 req/min, 1,000-result cap per query — slice by date range to work around.
 - Per-PR cost in the current design: 6 calls (`/pulls/{n}`, `/pulls/{n}/commits`, `/pulls/{n}/files`, `/pulls/{n}/reviews`, `/issues/{n}/comments`, `/pulls/{n}/comments`). `--no-extension-breakdown` drops it to 5.
-- **On a *rate-limit* 403, `GithubClient` locks itself and raises `RateLimitExceededError` for every subsequent call.** A 403 counts as a rate limit only when it carries a `Retry-After` header or `X-RateLimit-Remaining: 0` (see [ADR-047]); each provider catches the error, attaches its partial accumulator to `e.partial`, and re-raises. The orchestrator catches at the top, writes a partial report from whatever was collected, and returns exit code `2`. No automatic backoff/retry — the operator decides when to re-run.
-- **A non-rate-limit 403 (per-resource access denial, e.g. an org repo behind SAML SSO) surfaces as a plain `httpx.HTTPStatusError` and does *not* lock the client.** `CommitProvider` skips such a repo (alongside `404`/`409`) and keeps walking, so one inaccessible repo doesn't derail the run.
+- **On a *rate-limit* 403, `GithubClient` locks itself and raises `RateLimitExceededError` for every subsequent call.** A 403 counts as a rate limit only when it carries a `Retry-After` header or `X-RateLimit-Remaining: 0` (see [ADR-047]); each `GithubProvider` fetch method catches the error, attaches its partial accumulator to `e.partial`, and re-raises. The orchestrator catches at the top, writes a partial report from whatever was collected, and returns exit code `2`. No automatic backoff/retry — the operator decides when to re-run.
+- **A non-rate-limit 403 (per-resource access denial, e.g. an org repo behind SAML SSO) surfaces as a plain `httpx.HTTPStatusError` and does *not* lock the client.** `GithubProvider.fetch_commits` skips such a repo (alongside `404`/`409`) and keeps walking, so one inaccessible repo doesn't derail the run.
 - Always set ETag headers when caching is added to avoid spending quota on unchanged data.
 
 ## Conventions

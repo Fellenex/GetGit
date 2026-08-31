@@ -15,9 +15,9 @@ from ..exporting import JSONFileHandler, ReportService
 from ..github import (
     Commit,
     GithubClient,
+    GithubScrapeResult,
     GithubService,
     GithubSettings,
-    PullRequestFetchResult,
     RateLimitExceededError,
     RepositoryAccessError,
     RepoSummary,
@@ -69,7 +69,7 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
     print(state.describe_resume(), file=sys.stderr)
 
     repos: list[RepoSummary] = []
-    pr_result = PullRequestFetchResult()
+    pr_result = GithubScrapeResult()
     commits: list[Commit] = []
     partial = False
 
@@ -143,9 +143,9 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
 def _absorb_partial(
     partial: object,
     repos: list[RepoSummary],
-    pr_result: PullRequestFetchResult,
+    pr_result: GithubScrapeResult,
     commits: list[Commit],
-) -> tuple[list[RepoSummary], PullRequestFetchResult, list[Commit]]:
+) -> tuple[list[RepoSummary], GithubScrapeResult, list[Commit]]:
     """Route the failing provider's partial payload back into the local result vars.
 
     The orchestration is sequential, so only one provider was running
@@ -153,7 +153,7 @@ def _absorb_partial(
     payload's type (and, for the two `list` cases, by element type).
     Anything we already finished keeps its earlier value.
     """
-    if isinstance(partial, PullRequestFetchResult):
+    if isinstance(partial, GithubScrapeResult):
         return repos, partial, commits
     if isinstance(partial, list) and partial:
         if isinstance(partial[0], Commit):

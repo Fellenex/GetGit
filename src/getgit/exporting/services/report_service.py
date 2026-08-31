@@ -3,7 +3,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from ...github import AuthorshipReport, Commit, PullRequestFetchResult
+from ...github import AuthorshipReport, Commit, GithubScrapeResult
 from ..csv_writer import CsvWriter
 from ..json_file_handler import JSONFileHandler
 
@@ -21,7 +21,7 @@ class ReportService:
         self,
         username: str,
         commits: list[Commit],
-        pr_result: PullRequestFetchResult,
+        pr_result: GithubScrapeResult,
         out_dir: Path,
         *,
         generated_at: datetime,
@@ -72,13 +72,13 @@ class ReportService:
         self,
         username: str,
         commits: list[Commit],
-        pr_result: PullRequestFetchResult,
+        pr_result: GithubScrapeResult,
         *,
         generated_at: datetime,
     ) -> AuthorshipReport:
         """Assemble an `AuthorshipReport` from the collected scrape pieces.
 
-        Flattens a `PullRequestFetchResult` into the report's separate
+        Flattens a `GithubScrapeResult` into the report's separate
         authored / participated / reviews collections. `generated_at`
         is supplied by the caller so the report's timestamp matches the
         run's own clock rather than the moment of assembly.

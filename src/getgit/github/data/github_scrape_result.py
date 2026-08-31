@@ -1,4 +1,4 @@
-"""Result struct produced by `fetch_pull_requests`."""
+"""Aggregate result produced by `GithubProvider.fetch_pull_requests`."""
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -8,8 +8,12 @@ from .review import Review
 
 
 @dataclass
-class PullRequestFetchResult:
+class GithubScrapeResult:
     """Bundle of everything one PR-side scrape produces.
+
+    Named for the domain, not the endpoint, since it carries the PRs,
+    reviews, and commit→PR index that a scrape of GitHub produces (the
+    commit list is returned separately by `fetch_commits`).
 
     `authored` and `participated` partition the PRs the user touched.
     `reviews` is every review the user submitted on either set.

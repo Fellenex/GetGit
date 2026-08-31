@@ -1,8 +1,8 @@
-"""Tests for PullRequestFetchResult."""
+"""Tests for GithubScrapeResult."""
 
 from datetime import datetime, timezone
 
-from getgit.github import PullRequest, PullRequestFetchResult
+from getgit.github import GithubScrapeResult, PullRequest
 
 
 def _pr(number: int, updated_at: datetime | None) -> PullRequest:
@@ -25,7 +25,7 @@ def _pr(number: int, updated_at: datetime | None) -> PullRequest:
 
 def test_defaults_are_empty_collections():
     """Each field defaults to its own empty container."""
-    out = PullRequestFetchResult()
+    out = GithubScrapeResult()
 
     assert out.authored == []
     assert out.participated == []
@@ -35,8 +35,8 @@ def test_defaults_are_empty_collections():
 
 def test_default_factories_are_independent_per_instance():
     """Two instances must not share the same default list (mutable-default trap)."""
-    a = PullRequestFetchResult()
-    b = PullRequestFetchResult()
+    a = GithubScrapeResult()
+    b = GithubScrapeResult()
 
     a.authored.append("x")
 
@@ -47,7 +47,7 @@ def test_most_recent_updated_at_spans_authored_and_participated():
     """The newest timestamp wins whether it sits in authored or participated."""
     older = datetime(2026, 5, 1, tzinfo=timezone.utc)
     newer = datetime(2026, 5, 20, tzinfo=timezone.utc)
-    result = PullRequestFetchResult(
+    result = GithubScrapeResult(
         authored=[_pr(1, older)], participated=[_pr(2, newer)]
     )
 
@@ -58,13 +58,13 @@ def test_most_recent_updated_at_returns_fallback_when_no_timestamps():
     """With no PRs (or none carrying a timestamp) the supplied fallback is returned."""
     fallback = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
-    assert PullRequestFetchResult().most_recent_updated_at(fallback) == fallback
+    assert GithubScrapeResult().most_recent_updated_at(fallback) == fallback
     assert (
-        PullRequestFetchResult(authored=[_pr(1, None)]).most_recent_updated_at(fallback)
+        GithubScrapeResult(authored=[_pr(1, None)]).most_recent_updated_at(fallback)
         == fallback
     )
 
 
 def test_most_recent_updated_at_fallback_defaults_to_none():
     """Fallback is optional; an empty result reports no watermark at all."""
-    assert PullRequestFetchResult().most_recent_updated_at() is None
+    assert GithubScrapeResult().most_recent_updated_at() is None

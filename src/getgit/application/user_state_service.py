@@ -3,7 +3,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from ..github import Commit, PullRequestFetchResult
+from ..github import Commit, GithubScrapeResult
 from .data import UserState
 from .user_state_repository import UserStateRepository
 
@@ -28,7 +28,7 @@ class UserStateService:
     def save_new_state(
         self,
         previous: UserState,
-        pr_result: PullRequestFetchResult,
+        pr_result: GithubScrapeResult,
         commits: list[Commit],
         started_at: datetime,
         partial: bool,
@@ -44,7 +44,7 @@ class UserStateService:
     def _next_state(
         self,
         previous: UserState,
-        pr_result: PullRequestFetchResult,
+        pr_result: GithubScrapeResult,
         commits: list[Commit],
         started_at: datetime,
         partial: bool,

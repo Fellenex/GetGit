@@ -11,9 +11,9 @@ from getgit.github import (
     CommitPayload,
     GithubClient,
     GithubProvider,
+    GithubScrapeResult,
     IssueSearchResult,
     PullRequestDetail,
-    PullRequestFetchResult,
     PullRequestFile,
     PullRequestReview,
     RateLimitExceededError,
@@ -167,14 +167,14 @@ def test_fetch_pull_requests_open_pr_is_not_merged():
 
 
 def test_fetch_pull_requests_rate_limit_attaches_partial_result():
-    """A rate limit mid-fetch attaches a (possibly empty) PullRequestFetchResult."""
+    """A rate limit mid-fetch attaches a (possibly empty) GithubScrapeResult."""
     client = Mock(spec=GithubClient)
     client.search_issues.side_effect = RateLimitExceededError("too many")
 
     with pytest.raises(RateLimitExceededError) as excinfo:
         GithubProvider(client).fetch_pull_requests("alice")
 
-    assert isinstance(excinfo.value.partial, PullRequestFetchResult)
+    assert isinstance(excinfo.value.partial, GithubScrapeResult)
     assert excinfo.value.partial.authored == []
     assert excinfo.value.partial.participated == []
 

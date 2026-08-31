@@ -5,16 +5,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from getgit.exporting import ReportService
-from getgit.github import Commit, PullRequest, PullRequestFetchResult, Review
+from getgit.github import Commit, GithubScrapeResult, PullRequest, Review
 
 
-def _sample_pieces() -> tuple[str, list[Commit], PullRequestFetchResult, datetime]:
+def _sample_pieces() -> tuple[str, list[Commit], GithubScrapeResult, datetime]:
     """Build the (username, commits, pr_result, generated_at) args write_report takes."""
     ts = datetime(2026, 5, 12, tzinfo=timezone.utc)
     commits = [
         Commit(sha="abc", repo="o/r", authored_at=ts, message="m", pull_request_number=42)
     ]
-    pr_result = PullRequestFetchResult(
+    pr_result = GithubScrapeResult(
         authored=[
             PullRequest(
                 number=42,

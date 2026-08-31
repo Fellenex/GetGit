@@ -6,17 +6,17 @@ Two families live here: the **wire-shape response objects** that
 `PullRequestReview`, `Comment`, `CommitPayload`), and the **internal
 domain models** that `GithubProvider` derives from them (`Commit`,
 `PullRequest`, `Review`) plus the aggregates (`AuthorshipReport`,
-`PullRequestFetchResult`).
+`GithubScrapeResult`).
 """
 
 from .authorship_report import AuthorshipReport
 from .comment import Comment
 from .commit import Commit
 from .commit_payload import CommitPayload
+from .github_scrape_result import GithubScrapeResult
 from .issue_search_result import IssueSearchResult
 from .pull_request import PullRequest
 from .pull_request_detail import PullRequestDetail
-from .pull_request_fetch_result import PullRequestFetchResult
 from .pull_request_file import PullRequestFile
 from .pull_request_review import PullRequestReview
 from .repo_summary import RepoSummary
@@ -27,10 +27,10 @@ __all__ = [
     "Comment",
     "Commit",
     "CommitPayload",
+    "GithubScrapeResult",
     "IssueSearchResult",
     "PullRequest",
     "PullRequestDetail",
-    "PullRequestFetchResult",
     "PullRequestFile",
     "PullRequestReview",
     "RepoSummary",

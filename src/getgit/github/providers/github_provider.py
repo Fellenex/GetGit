@@ -11,8 +11,8 @@ from ..data import (
     Comment,
     Commit,
     CommitPayload,
+    GithubScrapeResult,
     PullRequest,
-    PullRequestFetchResult,
     RepoSummary,
     Review,
 )
@@ -73,7 +73,7 @@ class GithubProvider:
         fetch_extensions: bool = True,
         since: datetime | None = None,
         target_repo: str | None = None,
-    ) -> PullRequestFetchResult:
+    ) -> GithubScrapeResult:
         """Collect every closed PR the user authored or participated in.
 
         "Authored" comes from `author:USER`; "participated" is the union
@@ -87,13 +87,13 @@ class GithubProvider:
         resumed runs skip unchanged PRs. `target_repo` (e.g.
         `"octocat/hello-world"`) constrains every search with
         `repo:OWNER/NAME`. `limit` caps each set independently. On rate
-        limit, attaches the partially-built `PullRequestFetchResult` to
+        limit, attaches the partially-built `GithubScrapeResult` to
         the raised `RateLimitExceededError`. When `target_repo` is set and
         the scoped search returns 422 (repo missing or invisible to the
         token), raises `RepositoryAccessError` instead of leaking the raw
         `HTTPStatusError`.
         """
-        out = PullRequestFetchResult()
+        out = GithubScrapeResult()
         try:
             authored_keys: set[tuple[str, int]] = set()
             for hit in self._client.search_issues(

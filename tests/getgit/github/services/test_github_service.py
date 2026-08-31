@@ -6,8 +6,8 @@ from getgit.application import ScrapeSettings
 from getgit.github import (
     GithubClient,
     GithubProvider,
+    GithubScrapeResult,
     GithubService,
-    PullRequestFetchResult,
     RepoSummary,
 )
 
@@ -28,7 +28,7 @@ def _make_service(**setting_overrides):
     """Build a service backed by a Mock provider; return service + the mock."""
     provider = Mock(spec=GithubProvider)
     provider.list_repos.return_value = [RepoSummary("o/r")]
-    provider.fetch_pull_requests.return_value = PullRequestFetchResult()
+    provider.fetch_pull_requests.return_value = GithubScrapeResult()
     provider.fetch_commits.return_value = []
 
     service = GithubService(provider=provider, settings=_settings(**setting_overrides))

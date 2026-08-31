@@ -4,7 +4,7 @@ from datetime import datetime
 
 from ...application import ScrapeSettings
 from ..clients import GithubClient
-from ..data import Commit, PullRequestFetchResult, RepoSummary
+from ..data import Commit, GithubScrapeResult, RepoSummary
 from ..providers import GithubProvider
 
 
@@ -39,7 +39,7 @@ class GithubService:
 
     def fetch_pull_requests(
         self, since: datetime | None = None
-    ) -> PullRequestFetchResult:
+    ) -> GithubScrapeResult:
         """Collect authored + participated PRs, reviews, and a commit→PR index.
 
         `since`, when set, scopes each search to PRs updated on/after that
@@ -62,7 +62,7 @@ class GithubService:
     ) -> list[Commit]:
         """Walk `repos` and collect commits authored by the target user.
 
-        `pr_index` (typically `PullRequestFetchResult.commit_pr_index`)
+        `pr_index` (typically `GithubScrapeResult.commit_pr_index`)
         attaches the merging PR number to each commit it covers.
         `since_per_repo`, when supplied, restricts each repo's commit
         listing to commits authored on/after the given timestamp.

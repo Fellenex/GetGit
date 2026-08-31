@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock
 
 from getgit.application import UserState, UserStateRepository, UserStateService
-from getgit.github import Commit, PullRequest, PullRequestFetchResult
+from getgit.github import Commit, GithubScrapeResult, PullRequest
 
 
 def _service() -> tuple[UserStateService, Mock]:
@@ -54,7 +54,7 @@ def test_save_new_state_advances_watermarks_on_a_complete_run():
     new_commit = datetime(2026, 5, 18, tzinfo=timezone.utc)
     started = datetime(2026, 5, 21, tzinfo=timezone.utc)
     previous = UserState(pr_search_updated_since=old, commits_per_repo={"o/r": old})
-    pr_result = PullRequestFetchResult(authored=[_pr(1, new_pr)])
+    pr_result = GithubScrapeResult(authored=[_pr(1, new_pr)])
     commits = [_commit("o/r", new_commit)]
 
     service.save_new_state(previous, pr_result, commits, started, partial=False)
@@ -73,7 +73,7 @@ def test_save_new_state_holds_watermarks_on_a_partial_run():
     started = datetime(2026, 5, 21, tzinfo=timezone.utc)
     previous = UserState(pr_search_updated_since=old, commits_per_repo={"o/r": old})
     # Fresh data exists, but a partial must ignore it for watermark purposes.
-    pr_result = PullRequestFetchResult(
+    pr_result = GithubScrapeResult(
         authored=[_pr(1, datetime(2026, 5, 20, tzinfo=timezone.utc))]
     )
     commits = [_commit("o/r", datetime(2026, 5, 18, tzinfo=timezone.utc))]
@@ -93,7 +93,7 @@ def test_save_new_state_returns_the_path_from_the_repository():
     repo.save.return_value = "output/alice/state.json"
 
     result = service.save_new_state(
-        UserState(), PullRequestFetchResult(), [], datetime.now(timezone.utc), False
+        UserState(), GithubScrapeResult(), [], datetime.now(timezone.utc), False
     )
 
     assert result == "output/alice/state.json"
