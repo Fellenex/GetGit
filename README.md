@@ -1,5 +1,7 @@
 # GetGit
 
+[![CI](https://github.com/Fellenex/GetGit/actions/workflows/ci.yml/badge.svg)](https://github.com/Fellenex/GetGit/actions/workflows/ci.yml)
+
 A tool for scraping GitHub authorship data — commits, pull requests, and associated metadata — for a given user.
 
 ## Table of contents
