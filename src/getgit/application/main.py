@@ -10,34 +10,34 @@ this module.
 import sys
 from datetime import datetime, timezone
 
-from ..authentication import GithubSettings
 from ..exporting import JSONFileHandler, ReportService
 from ..github import (
-    AuthorshipReport,
     Commit,
-    CommitProvider,
     GithubClient,
     GithubService,
+    GithubSettings,
     PullRequestFetchResult,
-    PullRequestProvider,
     RateLimitExceededError,
-    RepoProvider,
     RepositoryAccessError,
 )
-from .data import AppSettings, UserState
+from .data import AppSettings, ExitCode
 from .user_state_repository import UserStateRepository
+from .user_state_service import UserStateService
 
 
-def run(settings: AppSettings) -> int:
+def run(settings: AppSettings) -> ExitCode:
     """Execute the full scrape and write the report to disk.
 
-    Returns a process exit code:
-    - `0` on full success.
-    - `2` on partial save — a 403 was hit mid-scrape and the report was
-      written from whatever data was collected so far.
-    - `3` when a `--repo`-scoped search returns 422 — the target repo
-      doesn't exist or the token can't see it. Fails fast with a clean
-      message (no report written, no traceback).
+    Returns an `ExitCode` (an `IntEnum`, so it doubles as the process
+    exit status):
+    - `ExitCode.SUCCESS` (`0`) on full success.
+    - `ExitCode.PARTIAL` (`2`) on partial save — a 403 was hit
+      mid-scrape and the report was written from whatever data was
+      collected so far.
+    - `ExitCode.REPOSITORY_ACCESS_ERROR` (`3`) when a `--repo`-scoped
+      search returns 422 — the target repo doesn't exist or the token
+      can't see it. Fails fast with a clean message (no report written,
+      no traceback).
 
     Raises `RuntimeError` if `settings.access_token` is missing —
     failing fast here beats discovering it mid-scrape via a 401 from
@@ -58,11 +58,11 @@ def run(settings: AppSettings) -> int:
         )
 
     started_at = datetime.now(timezone.utc)
-    state_repository = UserStateRepository(
-        settings.out_dir, settings.username, JSONFileHandler()
+    state_service = UserStateService(
+        UserStateRepository(settings.out_dir, settings.username, JSONFileHandler())
     )
-    state = state_repository.load()
-    print(_describe_resume(state), file=sys.stderr)
+    state = state_service.load_current_state()
+    print(state.describe_resume(), file=sys.stderr)
 
     repos: list[dict] = []
     pr_result = PullRequestFetchResult()
@@ -80,12 +80,7 @@ def run(settings: AppSettings) -> int:
                 file=sys.stderr,
             )
 
-            github = GithubService(
-                repo_provider=RepoProvider(client),
-                pull_request_provider=PullRequestProvider(client),
-                commit_provider=CommitProvider(client),
-                settings=settings,
-            )
+            github = GithubService.build(client, settings)
 
             if settings.target_repo:
                 repos = [{"full_name": settings.target_repo}]
@@ -116,99 +111,29 @@ def run(settings: AppSettings) -> int:
             print(f"Found {len(commits)} commits", file=sys.stderr)
     except RepositoryAccessError as e:
         print(f"Error: {e}", file=sys.stderr)
-        return 3
+        return ExitCode.REPOSITORY_ACCESS_ERROR
     except RateLimitExceededError as e:
         partial = True
         print(f"Hit rate limit: {e}", file=sys.stderr)
         repos, pr_result, commits = _absorb_partial(e.partial, repos, pr_result, commits)
         print("Saving partial report from data collected so far.", file=sys.stderr)
 
-    report = AuthorshipReport(
-        username=settings.username,
+    paths = ReportService().write_report(
+        settings.username,
+        commits,
+        pr_result,
+        settings.out_dir,
         generated_at=datetime.now(timezone.utc),
-        commits=commits,
-        authored_pull_requests=pr_result.authored,
-        participated_pull_requests=pr_result.participated,
-        reviews=pr_result.reviews,
     )
-    paths = ReportService().write_report(report, settings.out_dir)
     for label, p in paths.items():
         print(f"Wrote {label}: {p}")
 
-    new_state = _next_state(state, pr_result, commits, started_at, partial)
-    state_path = state_repository.save(new_state)
+    state_path = state_service.save_new_state(
+        state, pr_result, commits, started_at, partial
+    )
     print(f"Updated user state: {state_path}", file=sys.stderr)
 
-    return 2 if partial else 0
-
-
-def _describe_resume(state: UserState) -> str:
-    """Render a one-line summary of where this run picks up from."""
-    if state.last_run_status == "never":
-        return "UserState: first run for this user."
-    base = f"UserState: last run {state.last_run_status} at {state.last_run_at}"
-    if state.pr_search_updated_since:
-        base += f"; PRs updated since {state.pr_search_updated_since}"
-    if state.commits_per_repo:
-        base += f"; {len(state.commits_per_repo)} repos with commit watermarks"
-    return base + "."
-
-
-def _next_state(
-    previous: UserState,
-    pr_result: PullRequestFetchResult,
-    commits: list[Commit],
-    started_at: datetime,
-    partial: bool,
-) -> UserState:
-    """Compute the next `UserState` to persist.
-
-    On a complete run we advance watermarks to the newest data we
-    collected. On a partial run we keep the previous watermarks so
-    the next run re-fetches the same window — trying to advance a
-    partial creates gaps in coverage between the old watermark and
-    the oldest item we managed to collect this time.
-    """
-    if partial:
-        return UserState(
-            pr_search_updated_since=previous.pr_search_updated_since,
-            commits_per_repo=dict(previous.commits_per_repo),
-            last_run_at=started_at,
-            last_run_status="partial",
-        )
-
-    pr_watermark = _max_pr_updated_at(pr_result, previous.pr_search_updated_since)
-    commits_watermark = _merge_commit_watermarks(previous.commits_per_repo, commits)
-    return UserState(
-        pr_search_updated_since=pr_watermark,
-        commits_per_repo=commits_watermark,
-        last_run_at=started_at,
-        last_run_status="complete",
-    )
-
-
-def _max_pr_updated_at(
-    pr_result: PullRequestFetchResult, fallback: datetime | None
-) -> datetime | None:
-    """Return the most recent `updated_at` across both PR sets, or `fallback` if empty."""
-    timestamps = [
-        pr.updated_at
-        for pr in (*pr_result.authored, *pr_result.participated)
-        if pr.updated_at
-    ]
-    return max(timestamps) if timestamps else fallback
-
-
-def _merge_commit_watermarks(
-    previous: dict[str, datetime], commits: list[Commit]
-) -> dict[str, datetime]:
-    """Merge previous per-repo commit watermarks with the newest `authored_at` per repo from this run."""
-    merged = dict(previous)
-    for commit in commits:
-        existing = merged.get(commit.repo)
-        if existing is None or commit.authored_at > existing:
-            merged[commit.repo] = commit.authored_at
-    return merged
+    return ExitCode.PARTIAL if partial else ExitCode.SUCCESS
 
 
 def _absorb_partial(

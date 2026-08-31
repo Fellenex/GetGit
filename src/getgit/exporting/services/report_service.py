@@ -1,8 +1,9 @@
 """Orchestrates writing an `AuthorshipReport` to disk via the writers."""
 
+from datetime import datetime
 from pathlib import Path
 
-from ...github import AuthorshipReport
+from ...github import AuthorshipReport, Commit, PullRequestFetchResult
 from ..csv_writer import CsvWriter
 from ..json_file_handler import JSONFileHandler
 
@@ -16,8 +17,21 @@ class ReportService:
     inject a `ParquetWriter`, etc.
     """
 
-    def write_report(self, report: AuthorshipReport, out_dir: Path) -> dict[str, Path]:
-        """Write each top-level collection in `report` as both JSON and CSV.
+    def write_report(
+        self,
+        username: str,
+        commits: list[Commit],
+        pr_result: PullRequestFetchResult,
+        out_dir: Path,
+        *,
+        generated_at: datetime,
+    ) -> dict[str, Path]:
+        """Assemble the report from the scrape pieces and write it to disk.
+
+        The only `ReportService` method the orchestrator calls: it
+        assembles an `AuthorshipReport` from `commits` + `pr_result`
+        (stamped with the caller-supplied `generated_at`) and writes
+        each top-level collection as both JSON and CSV.
 
         Files land in a per-run subdirectory:
         `<out_dir>/<username>/<generated_at>/<collection>.{json,csv}`.
@@ -29,6 +43,10 @@ class ReportService:
         Returns a dict of `{label: path}` for everything written.
         Existing files in the same per-run directory are overwritten.
         """
+        report = self._generate_report(
+            username, commits, pr_result, generated_at=generated_at
+        )
+
         base_dir = out_dir / report.username / report.generated_at.strftime(
             "%Y-%m-%d_T%H-%M-%S"
         )
@@ -49,3 +67,27 @@ class ReportService:
             paths[f"{name}_json"] = json_handler.write(items, base_dir / f"{name}.json")
             paths[f"{name}_csv"] = csv_writer.write(items, base_dir / f"{name}.csv")
         return paths
+
+    def _generate_report(
+        self,
+        username: str,
+        commits: list[Commit],
+        pr_result: PullRequestFetchResult,
+        *,
+        generated_at: datetime,
+    ) -> AuthorshipReport:
+        """Assemble an `AuthorshipReport` from the collected scrape pieces.
+
+        Flattens a `PullRequestFetchResult` into the report's separate
+        authored / participated / reviews collections. `generated_at`
+        is supplied by the caller so the report's timestamp matches the
+        run's own clock rather than the moment of assembly.
+        """
+        return AuthorshipReport(
+            username=username,
+            generated_at=generated_at,
+            commits=commits,
+            authored_pull_requests=pr_result.authored,
+            participated_pull_requests=pr_result.participated,
+            reviews=pr_result.reviews,
+        )

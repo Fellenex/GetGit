@@ -4,7 +4,7 @@ from typing import Iterator
 
 import httpx
 
-from ...authentication import GithubSettings
+from .github_settings import GithubSettings
 from .rate_limit_exceeded_error import RateLimitExceededError
 
 

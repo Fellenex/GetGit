@@ -1,11 +1,12 @@
 """Tests for GithubService — verifies it threads AppSettings into each provider."""
 
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from getgit.application import AppSettings
 from getgit.github import (
     CommitProvider,
+    GithubClient,
     GithubService,
     PullRequestFetchResult,
     PullRequestProvider,
@@ -43,6 +44,25 @@ def _make_service(**setting_overrides):
         settings=_settings(**setting_overrides),
     )
     return service, repo, prs, commits
+
+
+def test_build_wires_all_three_providers_to_one_client():
+    """build() constructs each provider from the same client and returns a ready service."""
+    client = Mock(spec=GithubClient)
+    module = "getgit.github.services.github_service"
+
+    with patch(f"{module}.RepoProvider") as repo_cls, patch(
+        f"{module}.PullRequestProvider"
+    ) as pr_cls, patch(f"{module}.CommitProvider") as commit_cls:
+        service = GithubService.build(client, _settings(username="bob"))
+
+    repo_cls.assert_called_once_with(client)
+    pr_cls.assert_called_once_with(client)
+    commit_cls.assert_called_once_with(client)
+    assert isinstance(service, GithubService)
+
+    service.fetch_repositories(is_self=True)
+    repo_cls.return_value.list_repos.assert_called_once_with("bob", is_self=True)
 
 
 def test_fetch_repositories_passes_username_and_is_self():

@@ -57,3 +57,38 @@ def test_to_jsonable_emits_iso_strings_via_jsonmodel():
     assert out["commits_per_repo"]["o/r"] == "2026-05-13T03:21:34+00:00"
     assert out["last_run_at"] == "2026-05-13T03:21:34+00:00"
     assert out["last_run_status"] == "complete"
+
+
+def test_describe_resume_reports_a_first_run():
+    """A never-run state describes itself as a first run, with no watermarks."""
+    assert UserState().describe_resume() == "UserState: first run for this user."
+
+
+def test_describe_resume_includes_status_and_watermarks():
+    """A prior run's summary carries status, timestamp, and both watermark hints."""
+    ts = datetime(2026, 5, 13, tzinfo=timezone.utc)
+    s = UserState(
+        pr_search_updated_since=ts,
+        commits_per_repo={"o/r": ts, "o/s": ts},
+        last_run_at=ts,
+        last_run_status="complete",
+    )
+
+    summary = s.describe_resume()
+
+    assert summary.startswith(f"UserState: last run complete at {ts}")
+    assert f"PRs updated since {ts}" in summary
+    assert "2 repos with commit watermarks" in summary
+    assert summary.endswith(".")
+
+
+def test_describe_resume_omits_absent_watermarks():
+    """A prior run with no watermarks yet reports status only, no PR/commit clauses."""
+    ts = datetime(2026, 5, 13, tzinfo=timezone.utc)
+    s = UserState(last_run_at=ts, last_run_status="partial")
+
+    summary = s.describe_resume()
+
+    assert summary == f"UserState: last run partial at {ts}."
+    assert "PRs updated since" not in summary
+    assert "commit watermarks" not in summary

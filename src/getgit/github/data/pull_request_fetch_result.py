@@ -1,6 +1,7 @@
 """Result struct produced by `fetch_pull_requests`."""
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from .pull_request import PullRequest
 from .review import Review
@@ -20,3 +21,19 @@ class PullRequestFetchResult:
     participated: list[PullRequest] = field(default_factory=list)
     reviews: list[Review] = field(default_factory=list)
     commit_pr_index: dict[tuple[str, str], int] = field(default_factory=dict)
+
+    def most_recent_updated_at(
+        self, fallback: datetime | None = None
+    ) -> datetime | None:
+        """Return the newest `updated_at` across authored + participated PRs.
+
+        Falls back to `fallback` when neither set carries a timestamp —
+        the caller passes the previous watermark so it holds steady when
+        a run collected no PRs.
+        """
+        timestamps = [
+            pr.updated_at
+            for pr in (*self.authored, *self.participated)
+            if pr.updated_at
+        ]
+        return max(timestamps) if timestamps else fallback

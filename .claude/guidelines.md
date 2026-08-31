@@ -13,8 +13,8 @@ Operator supplies a PAT and a target username. Runs locally; writes JSON + CSV t
 
 - **v0.1.0** — download own (public + private) data via console.
 - **v0.2.0** — hardening release: tests, rate-limit handling, verify the stranger-public-data path end-to-end.
-- **v0.3.0** — dockerize so a single `docker compose up` produces the output files.
-- **v0.4.0** — periodic ("cron") runs that incrementally build a user's history over time. Each invocation is bounded (rate-limit-friendly) and resumable via the per-user `UserState` checkpoint. Builds on the v0.3.0 Docker image plus an external scheduler (system cron / Task Scheduler / `docker compose` + cron container).
+- **v0.3.0** — dockerize so a single `docker compose up` produces the output files. This is a *packaging/reproducibility* milestone (no local Python/venv setup for the operator), independent of scheduling; the container mounts `output/` as a volume so a run's files land on the host.
+- **v0.4.0** — periodic ("cron") runs that incrementally build a user's history over time. Each invocation is bounded (rate-limit-friendly) and resumable via the per-user `UserState` checkpoint. **Baseline is host cron** (or Task Scheduler) firing a dedicated bounded `task` target — the checkpoint is already an on-disk file, so nothing extra is needed to persist state between runs. The v0.3.0 Docker image is an *optional* deployment variant, not a prerequisite; running the scheduled scrape in a container is where the mounted `output/` volume matters (see [ADR-050]). Does **not** reuse the uncapped `startup` task — a cron target needs its own tuned caps so one run fits inside a rate-limit window.
 
 ### Phase 2 — Local web wrapper
 FastAPI + GitHub OAuth running on the operator's machine. Any logged-in user can pull their own data (public + private) or anyone else's public data.
@@ -33,10 +33,10 @@ The current source layout, by domain:
 ```
 src/getgit/
 ├── application/           # UI-agnostic orchestration
-│   ├── data/              #   AppSettings, UserState
+│   ├── data/              #   AppSettings, UserState, ExitCode
 │   ├── main.py            #   run(settings) — the entry point providers and exporters share
-│   └── user_state_store.py
-├── authentication/        # GithubSettings (auth_token, base_url, timeout)
+│   ├── user_state_repository.py  # file-backed UserState load/save
+│   └── user_state_service.py     # UserState load/advance/save coordination
 ├── cli/                   # ArgumentParser, main()
 ├── exporting/             # Writers + JSON file handler + report orchestration
 │   ├── interfaces/        #   Writer protocol
@@ -44,8 +44,7 @@ src/getgit/
 │   ├── csv_writer.py      #   CsvWriter
 │   └── json_file_handler.py
 ├── github/                # Everything GitHub-specific
-│   ├── clients/           #   GithubClient, RateLimitExceededError
-│   ├── data/              #   Commit, PullRequest, Review, AuthorshipReport, PullRequestFetchResult
+│   ├── clients/           #   GithubClient, GithubSettings, RateLimitExceededError, RepositoryAccessError
 │   ├── providers/         #   CommitProvider, PullRequestProvider, RepoProvider
 │   └── services/          #   GithubService (facade over the providers)
 └── infrastructure/        # Cross-cutting building blocks
@@ -55,7 +54,7 @@ src/getgit/
 
 ### Authentication
 
-`GithubSettings(auth_token, base_url, timeout)` is the only auth concept — a passive config carrier. There is no `Auth` protocol or `PersonalTokenAuth` strategy class; both were removed once it became clear the only artifact every implementation produced was a string token. The token enters via `AppSettings.access_token` (CLI reads `GITHUB_TOKEN` from env; phase 2's HTTP entry point will populate it from OAuth).
+`GithubSettings(auth_token, base_url, timeout)` is the only auth concept — a passive config carrier. It lives in `github/clients/` next to the `GithubClient` it configures (there is no separate `authentication/` domain — a one-class domain wasn't earning its place; see [ADR-052]). There is no `Auth` protocol or `PersonalTokenAuth` strategy class; both were removed once it became clear the only artifact every implementation produced was a string token. The token enters via `AppSettings.access_token` (CLI reads `GITHUB_TOKEN` from env; phase 2's HTTP entry point will populate it from OAuth).
 
 ### Self vs stranger scope
 
@@ -68,11 +67,11 @@ Per-resource scrapers, each taking a `GithubClient` in its constructor:
 - `PullRequestProvider` — `fetch(username, limit, fetch_extensions, since)` returns a `PullRequestFetchResult`
 - `CommitProvider` — `fetch(repos, username, limit, pr_index, since_per_repo)` returns `list[Commit]`
 
-`GithubService` (in `github/services/`) bundles the three providers + `AppSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`. Call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`.
+`GithubService` (in `github/services/`) bundles the three providers + `AppSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`. Call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`. `GithubService.build(client, settings)` is the composition root for the domain: it constructs the three providers from one `GithubClient` so `application.run` never imports them (see [ADR-049]). `run` still owns the `GithubClient` lifecycle (the `with` block wraps the whole pipeline, including error handling).
 
 ### Storage / cache
 
-Today: JSON + CSV files written by `ReportExporter` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateStore` (in `application/`). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
+Today: JSON + CSV files written by `ReportService` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. `ReportService.write_report(username, commits, pr_result, out_dir, *, generated_at)` is the sole entry point: it assembles the `AuthorshipReport` from the collected pieces (via a private `_generate_report`) and persists it, so `application.run` neither constructs the model nor knows the file layout (see [ADR-049], [ADR-052]). Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateRepository` (in `application/`). `UserStateService` sits over the repository and owns the watermark *transition* logic (`load_current_state()` / `save_new_state(...)`), so `application.run` deals in domain operations rather than raw load/save plus arithmetic; the repository stays pure file I/O (see [ADR-051]). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
 
 ## Tech choices
 

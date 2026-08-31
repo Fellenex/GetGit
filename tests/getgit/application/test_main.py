@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from getgit.application import AppSettings, run
+from getgit.application import AppSettings, ExitCode, run
 from getgit.github import RepositoryAccessError
 
 
@@ -54,6 +54,11 @@ def test_run_reports_repository_access_error_with_exit_3(monkeypatch, tmp_path, 
         def __init__(self, *args, **kwargs):
             """Ignore the wired-in providers and settings."""
 
+        @classmethod
+        def build(cls, client, settings):
+            """Match `GithubService.build`, ignoring the client and settings."""
+            return cls()
+
         def fetch_pull_requests(self, since=None):
             """Simulate the 422-scoped-search failure."""
             raise RepositoryAccessError("octocat/hello-world")
@@ -73,7 +78,7 @@ def test_run_reports_repository_access_error_with_exit_3(monkeypatch, tmp_path, 
 
     code = run(settings)
 
-    assert code == 3
+    assert code is ExitCode.REPOSITORY_ACCESS_ERROR
     err = capsys.readouterr().err
     assert "octocat/hello-world" in err
     assert not any(tmp_path.glob("alice/**/*.json"))
