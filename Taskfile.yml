@@ -35,3 +35,8 @@ tasks:
     # image) and supplies fake credentials — no real token, no raw env vars here.
     cmds:
       - docker compose --env-file .env.tests run --build --rm getgit pytest
+
+  generate-diagram:
+    desc: Regenerate docs/architecture.drawio from docs/generate_architecture.py (runs locally; needs Python 3.10+, no third-party deps or Docker).
+    cmds:
+      - python docs/generate_architecture.py

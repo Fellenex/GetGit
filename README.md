@@ -10,10 +10,17 @@ A tool for scraping GitHub authorship data — commits, pull requests, and assoc
 - [Data collected](#data-collected)
 - [Setup](#setup)
 - [Run with Docker](#run-with-docker)
+  - [One-time setup](#one-time-setup)
+  - [Running a scrape](#running-a-scrape)
+  - [Where the output goes](#where-the-output-goes)
+  - [Task shortcuts](#task-shortcuts)
 - [Code layout](#code-layout)
 - [Output](#output)
+  - [JSON row shapes](#json-row-shapes)
+  - [CSV columns](#csv-columns)
   - [Resumable runs (checkpoint)](#resumable-runs-checkpoint)
 - [API cost](#api-cost)
+  - [Worked examples](#worked-examples)
 - [Tests](#tests)
 - [Architecture and design decisions](#architecture-and-design-decisions)
 
@@ -112,7 +119,7 @@ The container writes to `/app/output`, which is bind-mounted to the host's `./ou
 
 ### Task shortcuts
 
-If you have [Task](https://taskfile.dev) installed, these wrap the commands above. All of them run **in Docker**, so they only need Docker (plus, for the `startup-*` tasks, the [one-time setup](#one-time-setup) of `.env` with your PAT). The `startup-*` tasks use `docker compose run`; `task test` builds and runs the dev image ([`docker/dev.Dockerfile`](docker/dev.Dockerfile)) — see [Tests](#tests).
+If you have [Task](https://taskfile.dev) installed, these wrap the commands above. The scrape and test tasks run **in Docker**, so they only need Docker (plus, for the `startup-*` tasks, the [one-time setup](#one-time-setup) of `.env` with your PAT). The `startup-*` tasks use `docker compose run`; `task test` builds and runs the dev image ([`docker/dev.Dockerfile`](docker/dev.Dockerfile)) — see [Tests](#tests). The lone exception is `generate-diagram`, a maintenance task that runs locally (needs only Python 3.10+, no Docker).
 
 | Task              | What it does                                              |
 | ----------------- | --------------------------------------------------------- |
@@ -120,6 +127,7 @@ If you have [Task](https://taskfile.dev) installed, these wrap the commands abov
 | `task startup -- USERNAME`      | Full scrape of `USERNAME` in Docker, no caps.           |
 | `task startup-repo -- USERNAME --repo OWNER/NAME` | Scrape `USERNAME` within a single repo in Docker, no caps (one repo is small enough). |
 | `task test`         | Build the dev image (tests + dev deps) and run the pytest suite inside it. |
+| `task generate-diagram` | Regenerate [`docs/architecture.drawio`](docs/architecture.drawio) from [`docs/generate_architecture.py`](docs/generate_architecture.py). Runs locally (Python 3.10+, no Docker). See [Code layout](#code-layout). |
 
 ## Code layout
 
@@ -129,7 +137,7 @@ Top-level directories and their responsibilities:
 | --- | --- |
 | `src/` | The `getgit` package — all application code (see the per-subfolder breakdown below). |
 | `tests/` | The pytest suite, mirroring the package layout under `tests/getgit/`, plus reusable test doubles/fixtures under `tests/_support/`. |
-| `docs/` | Documentation assets. Currently the `architecture.drawio` dependency diagram (refreshed at each release tag). |
+| `docs/` | Documentation assets: the `architecture.drawio` dependency diagram and [`generate_architecture.py`](docs/generate_architecture.py), the script that generates it from a declarative box/edge spec. Regenerate with `task generate-diagram` (or `python docs/generate_architecture.py`); refreshed at each release tag. |
 | `docker/` | Docker build files — `Dockerfile` (runtime image) and `dev.Dockerfile` (test image). `docker-compose.yml` and the shared `.dockerignore` stay at the repo root. |
 | `.claude/` | Project process material — [`guidelines.md`](.claude/guidelines.md) (roadmap, architecture, conventions) and [`architecturalDecisions.md`](.claude/architecturalDecisions.md) (the chronological ADR log). |
 
@@ -149,7 +157,7 @@ Each run writes to a per-run subdirectory `output/<username>/<generated_at>/`, w
 
 ```
 output/
-└── fellenex/
+└── Fellenex/
     └── 2026-05-13_T03-21-34/
         ├── commits.json
         ├── commits.csv
