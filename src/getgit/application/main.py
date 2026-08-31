@@ -20,8 +20,9 @@ from ..github import (
     RateLimitExceededError,
     RepositoryAccessError,
 )
-from .data import AppSettings, UserState
+from .data import AppSettings
 from .user_state_repository import UserStateRepository
+from .user_state_service import UserStateService
 
 
 def run(settings: AppSettings) -> int:
@@ -54,11 +55,11 @@ def run(settings: AppSettings) -> int:
         )
 
     started_at = datetime.now(timezone.utc)
-    state_repository = UserStateRepository(
-        settings.out_dir, settings.username, JSONFileHandler()
+    state_service = UserStateService(
+        UserStateRepository(settings.out_dir, settings.username, JSONFileHandler())
     )
-    state = state_repository.load()
-    print(_describe_resume(state), file=sys.stderr)
+    state = state_service.load_current_state()
+    print(state.describe_resume(), file=sys.stderr)
 
     repos: list[dict] = []
     pr_result = PullRequestFetchResult()
@@ -125,80 +126,12 @@ def run(settings: AppSettings) -> int:
     for label, p in paths.items():
         print(f"Wrote {label}: {p}")
 
-    new_state = _next_state(state, pr_result, commits, started_at, partial)
-    state_path = state_repository.save(new_state)
+    state_path = state_service.save_new_state(
+        state, pr_result, commits, started_at, partial
+    )
     print(f"Updated user state: {state_path}", file=sys.stderr)
 
     return 2 if partial else 0
-
-
-def _describe_resume(state: UserState) -> str:
-    """Render a one-line summary of where this run picks up from."""
-    if state.last_run_status == "never":
-        return "UserState: first run for this user."
-    base = f"UserState: last run {state.last_run_status} at {state.last_run_at}"
-    if state.pr_search_updated_since:
-        base += f"; PRs updated since {state.pr_search_updated_since}"
-    if state.commits_per_repo:
-        base += f"; {len(state.commits_per_repo)} repos with commit watermarks"
-    return base + "."
-
-
-def _next_state(
-    previous: UserState,
-    pr_result: PullRequestFetchResult,
-    commits: list[Commit],
-    started_at: datetime,
-    partial: bool,
-) -> UserState:
-    """Compute the next `UserState` to persist.
-
-    On a complete run we advance watermarks to the newest data we
-    collected. On a partial run we keep the previous watermarks so
-    the next run re-fetches the same window — trying to advance a
-    partial creates gaps in coverage between the old watermark and
-    the oldest item we managed to collect this time.
-    """
-    if partial:
-        return UserState(
-            pr_search_updated_since=previous.pr_search_updated_since,
-            commits_per_repo=dict(previous.commits_per_repo),
-            last_run_at=started_at,
-            last_run_status="partial",
-        )
-
-    pr_watermark = _max_pr_updated_at(pr_result, previous.pr_search_updated_since)
-    commits_watermark = _merge_commit_watermarks(previous.commits_per_repo, commits)
-    return UserState(
-        pr_search_updated_since=pr_watermark,
-        commits_per_repo=commits_watermark,
-        last_run_at=started_at,
-        last_run_status="complete",
-    )
-
-
-def _max_pr_updated_at(
-    pr_result: PullRequestFetchResult, fallback: datetime | None
-) -> datetime | None:
-    """Return the most recent `updated_at` across both PR sets, or `fallback` if empty."""
-    timestamps = [
-        pr.updated_at
-        for pr in (*pr_result.authored, *pr_result.participated)
-        if pr.updated_at
-    ]
-    return max(timestamps) if timestamps else fallback
-
-
-def _merge_commit_watermarks(
-    previous: dict[str, datetime], commits: list[Commit]
-) -> dict[str, datetime]:
-    """Merge previous per-repo commit watermarks with the newest `authored_at` per repo from this run."""
-    merged = dict(previous)
-    for commit in commits:
-        existing = merged.get(commit.repo)
-        if existing is None or commit.authored_at > existing:
-            merged[commit.repo] = commit.authored_at
-    return merged
 
 
 def _absorb_partial(

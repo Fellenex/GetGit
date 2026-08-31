@@ -29,3 +29,14 @@ class UserState(JSONModel):
     commits_per_repo: dict[str, datetime] = field(default_factory=dict)
     last_run_at: datetime | None = None
     last_run_status: str = "never"
+
+    def describe_resume(self) -> str:
+        """Render a one-line summary of where the next run picks up from."""
+        if self.last_run_status == "never":
+            return "UserState: first run for this user."
+        base = f"UserState: last run {self.last_run_status} at {self.last_run_at}"
+        if self.pr_search_updated_since:
+            base += f"; PRs updated since {self.pr_search_updated_since}"
+        if self.commits_per_repo:
+            base += f"; {len(self.commits_per_repo)} repos with commit watermarks"
+        return base + "."

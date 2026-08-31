@@ -35,7 +35,8 @@ src/getgit/
 ├── application/           # UI-agnostic orchestration
 │   ├── data/              #   AppSettings, UserState
 │   ├── main.py            #   run(settings) — the entry point providers and exporters share
-│   └── user_state_store.py
+│   ├── user_state_repository.py  # file-backed UserState load/save
+│   └── user_state_service.py     # UserState load/advance/save coordination
 ├── authentication/        # GithubSettings (auth_token, base_url, timeout)
 ├── cli/                   # ArgumentParser, main()
 ├── exporting/             # Writers + JSON file handler + report orchestration
@@ -72,7 +73,7 @@ Per-resource scrapers, each taking a `GithubClient` in its constructor:
 
 ### Storage / cache
 
-Today: JSON + CSV files written by `ReportService` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. `ReportService.generate_report(...)` assembles the `AuthorshipReport` from the collected pieces and `write_report(...)` persists it, so `application.run` neither constructs the model nor knows the file layout (see [ADR-049]). Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateRepository` (in `application/`). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
+Today: JSON + CSV files written by `ReportService` (in `exporting/`) to a per-run subdirectory `output/<username>/<generated_at>/`. `ReportService.generate_report(...)` assembles the `AuthorshipReport` from the collected pieces and `write_report(...)` persists it, so `application.run` neither constructs the model nor knows the file layout (see [ADR-049]). Per-user incremental state lives at `output/<username>/state.json` via `UserState` + `UserStateRepository` (in `application/`). `UserStateService` sits over the repository and owns the watermark *transition* logic (`load_current_state()` / `save_new_state(...)`), so `application.run` deals in domain operations rather than raw load/save plus arithmetic; the repository stays pure file I/O (see [ADR-051]). Phase 3 will need a persistent store (DB or object storage) and per-user isolation. ETags + `If-None-Match` are the mechanism for not re-spending quota on unchanged data — wire them in when caching becomes a real constraint.
 
 ## Tech choices
 
