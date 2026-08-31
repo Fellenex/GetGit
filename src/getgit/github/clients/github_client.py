@@ -1,9 +1,20 @@
 """Authenticated GitHub REST client with pagination support."""
 
+from datetime import datetime
 from typing import Iterator
 
 import httpx
 
+from ...infrastructure.dates import IsoDateParser
+from ..data import (
+    Comment,
+    CommitPayload,
+    IssueSearchResult,
+    PullRequestDetail,
+    PullRequestFile,
+    PullRequestReview,
+    RepoSummary,
+)
 from .github_settings import GithubSettings
 from .rate_limit_exceeded_error import RateLimitExceededError
 
@@ -82,6 +93,138 @@ class GithubClient:
         resp = self.get("/user")
         resp.raise_for_status()
         return resp.json()["login"]
+
+    def list_own_repos(self) -> list[RepoSummary]:
+        """List repos the token's user owns, collaborates on, or is an org member of.
+
+        Hits `/user/repos` with
+        `affiliation=owner,collaborator,organization_member&visibility=all`
+        so org-owned and collaborator repos are discovered (not just
+        owned ones) — the self-scrape scope.
+        """
+        return [
+            RepoSummary(full_name=raw["full_name"])
+            for raw in self.paginate(
+                "/user/repos",
+                {
+                    "affiliation": "owner,collaborator,organization_member",
+                    "visibility": "all",
+                },
+            )
+        ]
+
+    def list_user_repos(self, username: str) -> list[RepoSummary]:
+        """List the public repos owned by `username` (the stranger-scrape scope)."""
+        return [
+            RepoSummary(full_name=raw["full_name"])
+            for raw in self.paginate(f"/users/{username}/repos")
+        ]
+
+    def search_issues(self, query: str) -> list[IssueSearchResult]:
+        """Run a `/search/issues` query, returning each hit's repo slug + number.
+
+        The search envelope (`items`) and the `repository_url` →
+        `owner/name` conversion are handled here so no route or wire-shape
+        knowledge escapes the client.
+        """
+        return [
+            IssueSearchResult(
+                repo_full_name=self._key_from_repo_url(issue["repository_url"]),
+                number=issue["number"],
+            )
+            for issue in self.paginate("/search/issues", {"q": query})
+        ]
+
+    def list_repo_commits(
+        self, full_name: str, *, author: str, since: datetime | None = None
+    ) -> list[CommitPayload]:
+        """List commits in `full_name` authored by `author`, optionally `since` a time.
+
+        Uses `/repos/{full_name}/commits?author=...`, avoiding the
+        `/search/commits` rate cap. `since` adds GitHub's `since=` filter
+        so resumed runs skip already-collected commits.
+        """
+        params: dict[str, str] = {"author": author}
+        if since is not None:
+            params["since"] = since.isoformat()
+        return [
+            CommitPayload(
+                sha=raw["sha"],
+                authored_at=IsoDateParser.parse(raw["commit"]["author"]["date"]),
+                message=raw["commit"]["message"],
+            )
+            for raw in self.paginate(f"/repos/{full_name}/commits", params)
+        ]
+
+    def get_pull_request(self, repo: str, number: int) -> PullRequestDetail:
+        """Fetch one PR's detail from `/repos/{repo}/pulls/{number}`."""
+        resp = self.get(f"/repos/{repo}/pulls/{number}")
+        resp.raise_for_status()
+        pr = resp.json()
+        return PullRequestDetail(
+            title=pr["title"],
+            body=pr.get("body"),
+            merged_at=IsoDateParser.parse(pr.get("merged_at")),
+            created_at=IsoDateParser.parse(pr["created_at"]),
+            closed_at=IsoDateParser.parse(pr.get("closed_at")),
+            updated_at=IsoDateParser.parse(pr["updated_at"]),
+            additions=pr.get("additions", 0),
+            deletions=pr.get("deletions", 0),
+            comments=pr.get("comments", 0),
+            review_comments=pr.get("review_comments", 0),
+        )
+
+    def list_pull_request_files(self, repo: str, number: int) -> list[PullRequestFile]:
+        """List a PR's changed files from `/repos/{repo}/pulls/{number}/files`."""
+        return [
+            PullRequestFile(
+                filename=raw["filename"],
+                additions=raw.get("additions", 0),
+                deletions=raw.get("deletions", 0),
+            )
+            for raw in self.paginate(f"/repos/{repo}/pulls/{number}/files")
+        ]
+
+    def list_pull_request_reviews(
+        self, repo: str, number: int
+    ) -> list[PullRequestReview]:
+        """List a PR's reviews from `/repos/{repo}/pulls/{number}/reviews`."""
+        return [
+            PullRequestReview(
+                author_login=(raw.get("user") or {}).get("login"),
+                state=raw.get("state", ""),
+                submitted_at=IsoDateParser.parse(raw.get("submitted_at")),
+                body=raw.get("body") or "",
+            )
+            for raw in self.paginate(f"/repos/{repo}/pulls/{number}/reviews")
+        ]
+
+    def list_pull_request_commits(self, repo: str, number: int) -> list[str]:
+        """List the commit SHAs on a PR from `/repos/{repo}/pulls/{number}/commits`."""
+        return [
+            raw["sha"]
+            for raw in self.paginate(f"/repos/{repo}/pulls/{number}/commits")
+        ]
+
+    def list_issue_comments(self, repo: str, number: int) -> list[Comment]:
+        """List a PR's issue-comment stream from `/repos/{repo}/issues/{number}/comments`."""
+        return self._list_comments(f"/repos/{repo}/issues/{number}/comments")
+
+    def list_review_comments(self, repo: str, number: int) -> list[Comment]:
+        """List a PR's review-comment stream from `/repos/{repo}/pulls/{number}/comments`."""
+        return self._list_comments(f"/repos/{repo}/pulls/{number}/comments")
+
+    def _list_comments(self, url: str) -> list[Comment]:
+        """Paginate a comments endpoint into `Comment` response objects."""
+        return [
+            Comment(author_login=(raw.get("user") or {}).get("login"))
+            for raw in self.paginate(url)
+        ]
+
+    @staticmethod
+    def _key_from_repo_url(repo_url: str) -> str:
+        """Convert `https://api.github.com/repos/owner/repo` → `owner/repo`."""
+        return "/".join(repo_url.rsplit("/", 2)[-2:])
 
     def _guard_rate_limit(self) -> None:
         """Refuse to make a network call once a 403 has been seen."""
