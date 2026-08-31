@@ -275,11 +275,15 @@ def box_xml(bid,b):
 
 def edge_xml(eid,s,t,dashed):
     ex,ey,nx,ny = anchors(eid)
+    # Straight segments through the waypoints (NOT curved=1): drawio splines a
+    # curved edge *through* its waypoints, which bows and loops badly once an
+    # edge has more than a couple of them. Straight polylines follow the lanes
+    # exactly as laid out here (and as the box-crossing self-check assumes).
     if dashed:
-        st=(f"endArrow=block;endFill=0;dashed=1;html=1;curved=1;"
+        st=(f"endArrow=block;endFill=0;dashed=1;html=1;rounded=0;"
             f"exitX={ex};exitY={ey};exitDx=0;exitDy=0;entryX={nx};entryY={ny};exitPerimeter=1;entryDx=0;entryDy=0;")
     else:
-        st=(f"endArrow=classic;html=1;curved=1;"
+        st=(f"endArrow=classic;html=1;rounded=0;"
             f"exitX={ex};exitY={ey};exitDx=0;exitDy=0;entryX={nx};entryY={ny};exitPerimeter=1;entryDx=0;entryDy=0;")
     inner=""
     if eid in WP:
