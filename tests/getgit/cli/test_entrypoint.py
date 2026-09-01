@@ -1,5 +1,6 @@
 """Tests for the CLI entry point — verifies it wires argparse + application.run together."""
 
+import logging
 from unittest.mock import patch
 
 from getgit.cli import main
@@ -32,3 +33,24 @@ def test_main_returns_runs_exit_code(monkeypatch):
 
     with patch("getgit.cli.entrypoint.run", return_value=42):
         assert main(["alice"]) == 42
+
+
+def test_main_wires_getgit_logger_to_a_stream_handler_at_info(monkeypatch):
+    """main() should attach a stream handler to the `getgit` logger at INFO.
+
+    The reusable core logs progress through the `getgit` logger and adds
+    no handler itself; the CLI is what routes that to a stream. Handlers
+    are saved/restored so this global logger isn't mutated for other tests.
+    """
+    monkeypatch.setenv("GITHUB_TOKEN", "t")
+    logger = logging.getLogger("getgit")
+    saved = logger.handlers[:]
+    for handler in saved:
+        logger.removeHandler(handler)
+    try:
+        with patch("getgit.cli.entrypoint.run", return_value=0):
+            main(["alice"])
+        assert logger.level == logging.INFO
+        assert any(isinstance(h, logging.StreamHandler) for h in logger.handlers)
+    finally:
+        logger.handlers[:] = saved
