@@ -1,5 +1,6 @@
-"""GitHub provider — unravels client response objects into domain objects."""
+"""GitHub provider — fetch orchestration plus the wire→domain mapper."""
 
+from .github_mapper import GithubMapper
 from .github_provider import GithubProvider
 
-__all__ = ["GithubProvider"]
+__all__ = ["GithubMapper", "GithubProvider"]

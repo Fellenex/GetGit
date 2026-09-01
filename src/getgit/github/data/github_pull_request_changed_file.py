@@ -7,7 +7,7 @@ from dataclasses import dataclass
 class GithubPullRequestChangedFile:
     """One changed file as returned by `/repos/{repo}/pulls/{number}/files`.
 
-    A wire-shape object. `GithubProvider` aggregates these into the
+    A wire-shape object. `GithubMapper` aggregates these into the
     per-extension additions/deletions breakdown; the extension bucketing
     and zero-entry omission are its business, not this object's.
     """

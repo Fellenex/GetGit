@@ -9,7 +9,7 @@ class GithubReview:
     """One review as returned by `/repos/{repo}/pulls/{number}/reviews`.
 
     A wire-shape object. `author_login` is the review author's login (or
-    `None` when GitHub omits the `user`), which `GithubProvider` filters
+    `None` when GitHub omits the `user`), which `GithubMapper` filters
     on to keep only the target user's reviews before assigning the per-PR
     ordinal index and building a domain `Review`.
     """

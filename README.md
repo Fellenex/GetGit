@@ -150,7 +150,7 @@ Source is organized by **domain**, not by technical layer. Each subfolder under 
 | `application/` | UI-agnostic orchestration. `run(app_settings, scrape_settings)` is the shared entry point (`main.py`); also holds `AppSettings` (cross-scrape: `out_dir`, `access_token`), `ScrapeSettings` (per-scrape: `username`, caps, `target_repo`), and `UserState`/`ExitCode` (`data/`), the file-backed `UserStateRepository` checkpoint, and `UserStateService` (the watermark load/advance/save coordinator over it). |
 | `cli/` | Phase-1 command-line entry point (`entrypoint.py`): `ArgumentParser` and `main()`. |
 | `exporting/` | Report output. `Writer` protocol (`interfaces/`), `ReportService` (`services/`), `CsvWriter`, and the `JSONFileHandler`. |
-| `github/` | Everything GitHub-specific: `GithubClient`, `GithubSettings`, and the `RateLimitExceededError`/`RepositoryAccessError` exceptions (`clients/`); the `Commit`/`PullRequest`/`Review` data models plus `AuthorshipReport` and `PullRequestFetchResult` (`data/`); the per-resource scrapers (`providers/`); and `GithubService`, the facade over them (`services/`). |
+| `github/` | Everything GitHub-specific: `GithubClient`, `GithubSettings`, and the `RateLimitExceededError`/`RepositoryAccessError` exceptions (`clients/`); the `Commit`/`PullRequest`/`Review` data models plus `AuthorshipReport` and `PullRequestFetchResult` (`data/`); the fetch orchestrator `GithubProvider` and the stateless wire→domain mapper `GithubMapper` (`providers/`); and `GithubService`, the facade over them (`services/`). |
 | `infrastructure/` | Cross-cutting building blocks: `JSONModel` (`data/`) and `IsoDateParser` (`dates/`). |
 
 ## Output

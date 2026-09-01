@@ -12,7 +12,7 @@ class GithubCommit:
     `commit.author.date` / `commit.message` shape into these flat fields
     (parsing the author date to `datetime` at the boundary). The domain
     `Commit` — including the PR-number lookup against the commit→PR index
-    — is assembled from this by `GithubProvider`.
+    — is assembled from this by `GithubMapper`.
     """
 
     sha: str
