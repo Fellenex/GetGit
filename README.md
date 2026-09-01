@@ -22,7 +22,7 @@ A tool for scraping GitHub authorship data — commits, pull requests, and assoc
 - [GitHub API](#github-api)
   - [API cost](#api-cost)
     - [Worked examples](#worked-examples)
-  - [Response objects](#response-objects)
+  - [Wire-shape objects](#wire-shape-objects)
 - [Tests](#tests)
 - [Architecture and design decisions](#architecture-and-design-decisions)
 
@@ -301,19 +301,19 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 
 **On a per-repo access 403:** a `403` that is *not* a rate limit — e.g. an org repo behind SAML/SSO the PAT isn't authorized for — is treated as a per-repo condition, not a rate limit. That single repo is skipped (like a `404`/`409`) and the commit walk continues; the run still completes with exit `0`. Authorize the PAT for the org (classic PAT: "Configure SSO"; fine-grained PAT: org grants access) to include those repos.
 
-### Response objects
+### Wire-shape objects
 
-Every GitHub route GetGit hits lives behind a typed `GithubClient` method that returns a **wire-shape response object** — one class per endpoint's response, holding only the fields GetGit consumes.
+Every GitHub route GetGit hits lives behind a typed `GithubClient` method that returns a **wire-shape object** — one class per GitHub resource (in GitHub's shape, distinct from GetGit's internal domain models), holding only the fields GetGit consumes. List endpoints return `list[…]` of these; `get_pull_request` returns a single one.
 
-| Response Object | Endpoint |
+| Wire-shape object | Endpoint |
 | --- | --- |
-| `ReposResponse` | `/user/repos`, `/users/{username}/repos` |
-| `IssueSearchResponse` | `/search/issues` |
-| `CommitsResponse` | `/repos/{repo}/commits` |
-| `PullRequestResponse` | `/repos/{repo}/pulls/{number}` |
-| `PullRequestFilesResponse` | `/repos/{repo}/pulls/{number}/files` |
-| `PullRequestReviewsResponse` | `/repos/{repo}/pulls/{number}/reviews` |
-| `CommentsResponse` | `/repos/{repo}/issues/{number}/comments`, `/repos/{repo}/pulls/{number}/comments` |
+| `GithubRepo` | `/user/repos`, `/users/{username}/repos` |
+| `GithubIssue` | `/search/issues` |
+| `GithubCommit` | `/repos/{repo}/commits` |
+| `GithubPullRequest` | `/repos/{repo}/pulls/{number}` |
+| `GithubPullRequestChangedFile` | `/repos/{repo}/pulls/{number}/files` |
+| `GithubReview` | `/repos/{repo}/pulls/{number}/reviews` |
+| `GithubComment` | `/repos/{repo}/issues/{number}/comments`, `/repos/{repo}/pulls/{number}/comments` |
 
 ## Tests
 
