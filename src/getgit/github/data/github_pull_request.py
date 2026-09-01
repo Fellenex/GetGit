@@ -14,7 +14,7 @@ class GithubPullRequest:
     `PullRequest` — `merged = merged_at is not None`, summing
     `comments + review_comments`, the `additions`/`deletions` totals vs
     per-extension breakdown, JIRA-code extraction from `title`/`body` —
-    live in `GithubProvider`, not here.
+    live in `GithubMapper`, not here.
     """
 
     title: str

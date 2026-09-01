@@ -45,8 +45,8 @@ src/getgit/
 │   └── json_file_handler.py
 ├── github/                # Everything GitHub-specific
 │   ├── clients/           #   GithubClient, GithubSettings, RateLimitExceededError, RepositoryAccessError
-│   ├── providers/         #   CommitProvider, PullRequestProvider, RepoProvider
-│   └── services/          #   GithubService (facade over the providers)
+│   ├── providers/         #   GithubProvider (fetch orchestration), GithubMapper (wire→domain rules)
+│   └── services/          #   GithubService (facade over the provider)
 └── infrastructure/        # Cross-cutting building blocks
     ├── data/              #   JSONModel
     └── dates/             #   IsoDateParser
@@ -58,16 +58,15 @@ src/getgit/
 
 ### Self vs stranger scope
 
-The only client-side difference between scraping yourself and scraping a stranger lives in `RepoProvider.list_repos(username, is_self=...)`: `is_self=True` calls `/user/repos` with `affiliation=owner,collaborator,organization_member` (so org-owned and collaborator repos are discovered, not just owned ones — see [ADR-046]), `False` calls `/users/{u}/repos` (public owned repos only). Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
+The only client-side difference between scraping yourself and scraping a stranger lives in `GithubProvider.list_repos(username, is_self=...)`: `is_self=True` calls `/user/repos` with `affiliation=owner,collaborator,organization_member` (so org-owned and collaborator repos are discovered, not just owned ones — see [ADR-046]), `False` calls `/users/{u}/repos` (public owned repos only). Everything downstream is identical because the GitHub API enforces visibility server-side based on the PAT. A dedicated `ScopeResolver` will make sense in phase 2 when the *viewer* identity comes from OAuth and varies per request.
 
 ### Providers (the `github/providers/` domain)
 
-Per-resource scrapers, each taking a `GithubClient` in its constructor:
-- `RepoProvider` — `list_repos(username, is_self)`
-- `PullRequestProvider` — `fetch(username, limit, fetch_extensions, since)` returns a `PullRequestFetchResult`
-- `CommitProvider` — `fetch(repos, username, limit, pr_index, since_per_repo)` returns `list[Commit]`
+Two classes on the fetch-vs-mapping seam, both working over `GithubClient`'s wire-shape objects (see [ADR-058], [ADR-059], [ADR-063]):
+- `GithubProvider` — takes a `GithubClient` in its constructor; owns the multi-call fetch orchestration and the partial-result / per-resource error contract. Public: `list_repos(username, is_self)`; `fetch_pull_requests(username, limit, fetch_extensions, since, target_repo)` returns a `PullRequestFetchResult`; `fetch_commits(repos, username, limit, pr_index, since_per_repo)` returns `list[Commit]`. It knows no route strings (the client's job) and holds no stateless rules (the mapper's job).
+- `GithubMapper` — stateless (`@staticmethod`/`@classmethod`, no client); the wire→domain rules: search-query composition, JIRA extraction, the extension breakdown, comment counting, the `merged`/comment-sum derivations, and commit/review/PR assembly. Unit-testable with no transport double.
 
-`GithubService` (in `github/services/`) bundles the three providers + `AppSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`. Call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`. `GithubService.build(client, settings)` is the composition root for the domain: it constructs the three providers from one `GithubClient` so `application.run` never imports them (see [ADR-049]). `run` still owns the `GithubClient` lifecycle (the `with` block wraps the whole pipeline, including error handling).
+`GithubService` (in `github/services/`) bundles `GithubProvider` + `ScrapeSettings` and exposes `fetch_repositories`, `fetch_pull_requests`, `fetch_commits`. Call sites stop re-threading `username`/`max_*`/`fetch_extensions`/`since*` — those flow from settings + `UserState`. `GithubService.build(client, settings)` is the composition root for the domain: it constructs the provider from one `GithubClient` so `application.run` never imports it (see [ADR-049]). `run` still owns the `GithubClient` lifecycle (the `with` block wraps the whole pipeline, including error handling).
 
 ### Storage / cache
 

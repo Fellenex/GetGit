@@ -9,7 +9,7 @@ class GithubComment:
 
     A wire-shape object covering both `/repos/{repo}/issues/{n}/comments`
     and `/repos/{repo}/pulls/{n}/comments` — the two streams share the
-    only field we consume, the author's login. `GithubProvider` counts the
+    only field we consume, the author's login. `GithubMapper` counts the
     comments whose `author_login` matches the target user.
     """
 

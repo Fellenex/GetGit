@@ -20,7 +20,7 @@ from .data import (
     PullRequestFetchResult,
     Review,
 )
-from .providers import GithubProvider
+from .providers import GithubMapper, GithubProvider
 from .services import GithubService
 
 __all__ = [
@@ -30,6 +30,7 @@ __all__ = [
     "GithubComment",
     "GithubCommit",
     "GithubIssue",
+    "GithubMapper",
     "GithubProvider",
     "GithubPullRequest",
     "GithubPullRequestChangedFile",
