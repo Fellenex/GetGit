@@ -8,7 +8,7 @@ one entry point (argparse, environment loading, HTTP request decoding)
 lives outside this module.
 """
 
-import sys
+import logging
 from datetime import datetime, timezone
 
 from ..exporting import JSONFileHandler, ReportService
@@ -25,6 +25,16 @@ from ..github import (
 from .data import AppSettings, ExitCode, ScrapeSettings
 from .user_state_repository import UserStateRepository
 from .user_state_service import UserStateService
+
+logger = logging.getLogger("getgit")
+"""Progress/diagnostic channel for the scrape.
+
+`run` emits its progress through this logger instead of writing to
+`sys.stderr` directly, so the reusable core carries no presentation
+policy: the CLI entry point attaches a stderr handler (preserving the
+old behaviour), and a phase-2 HTTP caller attaches its own sink (or
+none). See [ADR-061].
+"""
 
 
 def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
@@ -66,7 +76,7 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
         )
     )
     state = state_service.load_current_state()
-    print(state.describe_resume(), file=sys.stderr)
+    logger.info("%s", state.describe_resume())
 
     repos: list[GithubRepo] = []
     pr_result = PullRequestFetchResult()
@@ -79,32 +89,35 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
             viewer = client.viewer_login()
             is_self = viewer.lower() == scrape_settings.username.lower()
 
-            print(
-                f"Viewer: {viewer} | Target: {scrape_settings.username} | Self: {is_self}",
-                file=sys.stderr,
+            logger.info(
+                "Viewer: %s | Target: %s | Self: %s",
+                viewer,
+                scrape_settings.username,
+                is_self,
             )
 
             github = GithubService.build(client, scrape_settings)
 
             if scrape_settings.target_repo:
                 repos = [GithubRepo(full_name=scrape_settings.target_repo)]
-                print(
-                    f"Targeting single repo: {scrape_settings.target_repo} (skipping repo discovery)",
-                    file=sys.stderr,
+                logger.info(
+                    "Targeting single repo: %s (skipping repo discovery)",
+                    scrape_settings.target_repo,
                 )
             else:
                 repos = github.fetch_repositories(is_self=is_self)
-                print(f"Found {len(repos)} repos", file=sys.stderr)
+                logger.info("Found %d repos", len(repos))
 
             pr_result = github.fetch_pull_requests(
                 since=state.pr_search_updated_since
             )
-            print(
-                f"Found {len(pr_result.authored)} authored PRs, "
-                f"{len(pr_result.participated)} participated PRs, "
-                f"{len(pr_result.reviews)} reviews "
-                f"(indexed {len(pr_result.commit_pr_index)} commits)",
-                file=sys.stderr,
+            logger.info(
+                "Found %d authored PRs, %d participated PRs, %d reviews "
+                "(indexed %d commits)",
+                len(pr_result.authored),
+                len(pr_result.participated),
+                len(pr_result.reviews),
+                len(pr_result.commit_pr_index),
             )
 
             commits = github.fetch_commits(
@@ -112,15 +125,15 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
                 pr_index=pr_result.commit_pr_index,
                 since_per_repo=state.commits_per_repo,
             )
-            print(f"Found {len(commits)} commits", file=sys.stderr)
+            logger.info("Found %d commits", len(commits))
     except RepositoryAccessError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        logger.error("%s", e)
         return ExitCode.REPOSITORY_ACCESS_ERROR
     except RateLimitExceededError as e:
         partial = True
-        print(f"Hit rate limit: {e}", file=sys.stderr)
+        logger.error("Hit rate limit: %s", e)
         repos, pr_result, commits = _absorb_partial(e.partial, repos, pr_result, commits)
-        print("Saving partial report from data collected so far.", file=sys.stderr)
+        logger.error("Saving partial report from data collected so far.")
 
     paths = ReportService().write_report(
         scrape_settings.username,
@@ -130,12 +143,12 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
         generated_at=datetime.now(timezone.utc),
     )
     for label, p in paths.items():
-        print(f"Wrote {label}: {p}")
+        logger.info("Wrote %s: %s", label, p)
 
     state_path = state_service.save_new_state(
         state, pr_result, commits, started_at, partial
     )
-    print(f"Updated user state: {state_path}", file=sys.stderr)
+    logger.info("Updated user state: %s", state_path)
 
     return ExitCode.PARTIAL if partial else ExitCode.SUCCESS
 

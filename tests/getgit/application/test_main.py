@@ -46,7 +46,7 @@ class _FakeClient:
         return "viewer"
 
 
-def test_run_reports_repository_access_error_with_exit_3(monkeypatch, tmp_path, capsys):
+def test_run_reports_repository_access_error_with_exit_3(monkeypatch, tmp_path, caplog):
     """A `RepositoryAccessError` should exit 3 with a clean message and no report."""
 
     class _FakeService:
@@ -73,6 +73,5 @@ def test_run_reports_repository_access_error_with_exit_3(monkeypatch, tmp_path, 
     code = run(app_settings, scrape_settings)
 
     assert code is ExitCode.REPOSITORY_ACCESS_ERROR
-    err = capsys.readouterr().err
-    assert "octocat/hello-world" in err
+    assert "octocat/hello-world" in caplog.text
     assert not any(tmp_path.glob("alice/**/*.json"))
