@@ -6,9 +6,9 @@ from getgit.application import ScrapeSettings
 from getgit.github import (
     GithubClient,
     GithubProvider,
+    GithubRepo,
     GithubService,
     PullRequestFetchResult,
-    RepoSummary,
 )
 
 
@@ -27,7 +27,7 @@ def _settings(**overrides) -> ScrapeSettings:
 def _make_service(**setting_overrides):
     """Build a service backed by a Mock provider; return service + the mock."""
     provider = Mock(spec=GithubProvider)
-    provider.list_repos.return_value = [RepoSummary("o/r")]
+    provider.list_repos.return_value = [GithubRepo("o/r")]
     provider.fetch_pull_requests.return_value = PullRequestFetchResult()
     provider.fetch_commits.return_value = []
 
@@ -82,7 +82,7 @@ def test_fetch_pull_requests_propagates_target_repo_from_settings():
 def test_fetch_commits_passes_repos_and_pr_index():
     """fetch_commits is the only method whose data comes from prior calls."""
     service, provider = _make_service(max_commits=5)
-    repos = [RepoSummary("o/r")]
+    repos = [GithubRepo("o/r")]
     pr_index = {("o/r", "abc"): 42}
 
     service.fetch_commits(repos=repos, pr_index=pr_index)
