@@ -9,25 +9,37 @@ from .clients import (
 from .data import (
     AuthorshipReport,
     Commit,
+    GithubComment,
+    GithubCommit,
+    GithubIssue,
+    GithubPullRequest,
+    GithubPullRequestChangedFile,
+    GithubRepo,
+    GithubReview,
     PullRequest,
     PullRequestFetchResult,
     Review,
 )
-from .providers import CommitProvider, PullRequestProvider, RepoProvider
+from .providers import GithubProvider
 from .services import GithubService
 
 __all__ = [
     "AuthorshipReport",
     "Commit",
-    "CommitProvider",
     "GithubClient",
+    "GithubComment",
+    "GithubCommit",
+    "GithubIssue",
+    "GithubProvider",
+    "GithubPullRequest",
+    "GithubPullRequestChangedFile",
+    "GithubRepo",
+    "GithubReview",
     "GithubService",
     "GithubSettings",
     "PullRequest",
     "PullRequestFetchResult",
-    "PullRequestProvider",
     "RateLimitExceededError",
-    "RepoProvider",
     "RepositoryAccessError",
     "Review",
 ]

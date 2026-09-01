@@ -15,6 +15,7 @@ from ..exporting import JSONFileHandler, ReportService
 from ..github import (
     Commit,
     GithubClient,
+    GithubRepo,
     GithubService,
     GithubSettings,
     PullRequestFetchResult,
@@ -67,7 +68,7 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
     state = state_service.load_current_state()
     print(state.describe_resume(), file=sys.stderr)
 
-    repos: list[dict] = []
+    repos: list[GithubRepo] = []
     pr_result = PullRequestFetchResult()
     commits: list[Commit] = []
     partial = False
@@ -86,7 +87,7 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
             github = GithubService.build(client, scrape_settings)
 
             if scrape_settings.target_repo:
-                repos = [{"full_name": scrape_settings.target_repo}]
+                repos = [GithubRepo(full_name=scrape_settings.target_repo)]
                 print(
                     f"Targeting single repo: {scrape_settings.target_repo} (skipping repo discovery)",
                     file=sys.stderr,
@@ -141,10 +142,10 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
 
 def _absorb_partial(
     partial: object,
-    repos: list[dict],
+    repos: list[GithubRepo],
     pr_result: PullRequestFetchResult,
     commits: list[Commit],
-) -> tuple[list[dict], PullRequestFetchResult, list[Commit]]:
+) -> tuple[list[GithubRepo], PullRequestFetchResult, list[Commit]]:
     """Route the failing provider's partial payload back into the local result vars.
 
     The orchestration is sequential, so only one provider was running

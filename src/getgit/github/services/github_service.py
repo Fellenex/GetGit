@@ -1,69 +1,52 @@
-"""High-level facade aggregating per-resource GitHub providers."""
+"""High-level facade over `GithubClient` + `GithubProvider`."""
 
 from datetime import datetime
 
 from ...application import ScrapeSettings
 from ..clients import GithubClient
-from ..data import Commit, PullRequestFetchResult
-from ..providers import CommitProvider, PullRequestProvider, RepoProvider
+from ..data import Commit, GithubRepo, PullRequestFetchResult
+from ..providers import GithubProvider
 
 
 class GithubService:
-    """Bundles per-resource providers with the shared `ScrapeSettings`.
+    """Binds a `GithubProvider` with the shared `ScrapeSettings`.
 
-    Callers see one object instead of three; `ScrapeSettings` is wired
-    in once at construction so each call site stops re-threading
-    `username`, `max_*`, and `fetch_extensions`. Each provider still
-    talks to the same `GithubClient` it was constructed with — the
+    Callers see one object; `ScrapeSettings` is wired in once at
+    construction so each call site stops re-threading `username`,
+    `max_*`, `fetch_extensions`, and `target_repo`. The provider does the
+    raw→domain unravelling and the client does the transport — the
     service is a coordinator, not a new transport.
     """
 
-    def __init__(
-        self,
-        repo_provider: RepoProvider,
-        pull_request_provider: PullRequestProvider,
-        commit_provider: CommitProvider,
-        settings: ScrapeSettings,
-    ):
-        """Bind the three providers and the settings they all draw from."""
-        self._repo_provider = repo_provider
-        self._pull_request_provider = pull_request_provider
-        self._commit_provider = commit_provider
+    def __init__(self, provider: GithubProvider, settings: ScrapeSettings):
+        """Bind the provider and the settings it draws per-scrape fields from."""
+        self._provider = provider
         self._settings = settings
 
     @classmethod
     def build(cls, client: GithubClient, settings: ScrapeSettings) -> "GithubService":
-        """Compose a `GithubService` and its three providers from a live client.
+        """Compose a `GithubService` over a `GithubProvider` from a live client.
 
         The composition root for the GitHub domain: callers hand over a
         `GithubClient` and `ScrapeSettings` and get back a fully wired
-        service without importing or constructing the individual
-        providers themselves.
+        service without constructing the provider themselves.
         """
-        return cls(
-            repo_provider=RepoProvider(client),
-            pull_request_provider=PullRequestProvider(client),
-            commit_provider=CommitProvider(client),
-            settings=settings,
-        )
+        return cls(provider=GithubProvider(client), settings=settings)
 
-    def fetch_repositories(self, *, is_self: bool) -> list[dict]:
+    def fetch_repositories(self, *, is_self: bool) -> list[GithubRepo]:
         """List repos owned by the target user (public-only when `is_self=False`)."""
-        return self._repo_provider.list_repos(
-            self._settings.username, is_self=is_self
-        )
+        return self._provider.list_repos(self._settings.username, is_self=is_self)
 
     def fetch_pull_requests(
         self, since: datetime | None = None
     ) -> PullRequestFetchResult:
         """Collect authored + participated PRs, reviews, and a commit→PR index.
 
-        `since`, when set, scopes each search to PRs updated on/after
-        that timestamp — passed through to `PullRequestProvider.fetch`.
-        `target_repo` (from settings) further scopes searches to a
-        single `repo:OWNER/NAME` when set.
+        `since`, when set, scopes each search to PRs updated on/after that
+        timestamp. `target_repo` (from settings) further scopes searches
+        to a single `repo:OWNER/NAME` when set.
         """
-        return self._pull_request_provider.fetch(
+        return self._provider.fetch_pull_requests(
             self._settings.username,
             limit=self._settings.max_prs,
             fetch_extensions=self._settings.fetch_extensions,
@@ -73,7 +56,7 @@ class GithubService:
 
     def fetch_commits(
         self,
-        repos: list[dict],
+        repos: list[GithubRepo],
         pr_index: dict[tuple[str, str], int],
         since_per_repo: dict[str, datetime] | None = None,
     ) -> list[Commit]:
@@ -84,7 +67,7 @@ class GithubService:
         `since_per_repo`, when supplied, restricts each repo's commit
         listing to commits authored on/after the given timestamp.
         """
-        return self._commit_provider.fetch(
+        return self._provider.fetch_commits(
             repos,
             self._settings.username,
             limit=self._settings.max_commits,
