@@ -86,54 +86,72 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
     github_settings = GithubSettings(auth_token=app_settings.access_token)
     try:
         with GithubClient(github_settings) as client:
-            viewer = client.viewer_login()
-            is_self = viewer.lower() == scrape_settings.username.lower()
-
-            logger.info(
-                "Viewer: %s | Target: %s | Self: %s",
-                viewer,
-                scrape_settings.username,
-                is_self,
-            )
-
-            github = GithubService.build(client, scrape_settings)
-
-            if scrape_settings.target_repo:
-                repos = [GithubRepo(full_name=scrape_settings.target_repo)]
+            # Each fetch phase catches its own rate limit and routes the
+            # provider's partial accumulator straight into that phase's
+            # result variable — so which phase failed is answered by
+            # control flow, not by inspecting the payload's type. A
+            # partial short-circuits the remaining phases via `partial`.
+            try:
+                viewer = client.viewer_login()
+                is_self = viewer.lower() == scrape_settings.username.lower()
                 logger.info(
-                    "Targeting single repo: %s (skipping repo discovery)",
-                    scrape_settings.target_repo,
+                    "Viewer: %s | Target: %s | Self: %s",
+                    viewer,
+                    scrape_settings.username,
+                    is_self,
                 )
-            else:
-                repos = github.fetch_repositories(is_self=is_self)
-                logger.info("Found %d repos", len(repos))
+                github = GithubService.build(client, scrape_settings)
 
-            pr_result = github.fetch_pull_requests(
-                since=state.pr_search_updated_since
-            )
-            logger.info(
-                "Found %d authored PRs, %d participated PRs, %d reviews "
-                "(indexed %d commits)",
-                len(pr_result.authored),
-                len(pr_result.participated),
-                len(pr_result.reviews),
-                len(pr_result.commit_pr_index),
-            )
+                if scrape_settings.target_repo:
+                    repos = [GithubRepo(full_name=scrape_settings.target_repo)]
+                    logger.info(
+                        "Targeting single repo: %s (skipping repo discovery)",
+                        scrape_settings.target_repo,
+                    )
+                else:
+                    repos = github.fetch_repositories(is_self=is_self)
+                    logger.info("Found %d repos", len(repos))
+            except RateLimitExceededError as e:
+                partial = True
+                repos = e.partial or []
+                logger.error("Hit rate limit: %s", e)
 
-            commits = github.fetch_commits(
-                repos=repos,
-                pr_index=pr_result.commit_pr_index,
-                since_per_repo=state.commits_per_repo,
-            )
-            logger.info("Found %d commits", len(commits))
+            if not partial:
+                try:
+                    pr_result = github.fetch_pull_requests(
+                        since=state.pr_search_updated_since
+                    )
+                    logger.info(
+                        "Found %d authored PRs, %d participated PRs, %d reviews "
+                        "(indexed %d commits)",
+                        len(pr_result.authored),
+                        len(pr_result.participated),
+                        len(pr_result.reviews),
+                        len(pr_result.commit_pr_index),
+                    )
+                except RateLimitExceededError as e:
+                    partial = True
+                    pr_result = e.partial
+                    logger.error("Hit rate limit: %s", e)
+
+            if not partial:
+                try:
+                    commits = github.fetch_commits(
+                        repos=repos,
+                        pr_index=pr_result.commit_pr_index,
+                        since_per_repo=state.commits_per_repo,
+                    )
+                    logger.info("Found %d commits", len(commits))
+                except RateLimitExceededError as e:
+                    partial = True
+                    commits = e.partial
+                    logger.error("Hit rate limit: %s", e)
+
+            if partial:
+                logger.error("Saving partial report from data collected so far.")
     except RepositoryAccessError as e:
         logger.error("%s", e)
         return ExitCode.REPOSITORY_ACCESS_ERROR
-    except RateLimitExceededError as e:
-        partial = True
-        logger.error("Hit rate limit: %s", e)
-        repos, pr_result, commits = _absorb_partial(e.partial, repos, pr_result, commits)
-        logger.error("Saving partial report from data collected so far.")
 
     paths = ReportService().write_report(
         scrape_settings.username,
@@ -151,25 +169,3 @@ def run(app_settings: AppSettings, scrape_settings: ScrapeSettings) -> ExitCode:
     logger.info("Updated user state: %s", state_path)
 
     return ExitCode.PARTIAL if partial else ExitCode.SUCCESS
-
-
-def _absorb_partial(
-    partial: object,
-    repos: list[GithubRepo],
-    pr_result: PullRequestFetchResult,
-    commits: list[Commit],
-) -> tuple[list[GithubRepo], PullRequestFetchResult, list[Commit]]:
-    """Route the failing provider's partial payload back into the local result vars.
-
-    The orchestration is sequential, so only one provider was running
-    when the rate limit hit — we can identify which one by the partial
-    payload's type (and, for the two `list` cases, by element type).
-    Anything we already finished keeps its earlier value.
-    """
-    if isinstance(partial, PullRequestFetchResult):
-        return repos, partial, commits
-    if isinstance(partial, list) and partial:
-        if isinstance(partial[0], Commit):
-            return repos, pr_result, partial
-        return partial, pr_result, commits
-    return repos, pr_result, commits
