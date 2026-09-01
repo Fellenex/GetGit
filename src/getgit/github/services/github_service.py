@@ -4,7 +4,7 @@ from datetime import datetime
 
 from ...application import ScrapeSettings
 from ..clients import GithubClient
-from ..data import Commit, PullRequestFetchResult, RepoSummary
+from ..data import Commit, GithubRepo, PullRequestFetchResult
 from ..providers import GithubProvider
 
 
@@ -33,7 +33,7 @@ class GithubService:
         """
         return cls(provider=GithubProvider(client), settings=settings)
 
-    def fetch_repositories(self, *, is_self: bool) -> list[RepoSummary]:
+    def fetch_repositories(self, *, is_self: bool) -> list[GithubRepo]:
         """List repos owned by the target user (public-only when `is_self=False`)."""
         return self._provider.list_repos(self._settings.username, is_self=is_self)
 
@@ -56,7 +56,7 @@ class GithubService:
 
     def fetch_commits(
         self,
-        repos: list[RepoSummary],
+        repos: list[GithubRepo],
         pr_index: dict[tuple[str, str], int],
         since_per_repo: dict[str, datetime] | None = None,
     ) -> list[Commit]:

@@ -19,8 +19,10 @@ A tool for scraping GitHub authorship data — commits, pull requests, and assoc
   - [JSON row shapes](#json-row-shapes)
   - [CSV columns](#csv-columns)
   - [Resumable runs (checkpoint)](#resumable-runs-checkpoint)
-- [API cost](#api-cost)
-  - [Worked examples](#worked-examples)
+- [GitHub API](#github-api)
+  - [API cost](#api-cost)
+    - [Worked examples](#worked-examples)
+  - [Wire-shape objects](#wire-shape-objects)
 - [Tests](#tests)
 - [Architecture and design decisions](#architecture-and-design-decisions)
 
@@ -260,7 +262,9 @@ Each run writes its own `output/<username>/<timestamp>/` subdirectory containing
 jq -s 'add' output/Fellenex/*/commits.json > all-commits.json
 ```
 
-## API cost
+## GitHub API
+
+### API cost
 
 GitHub's authenticated REST limit is **5,000 requests/hour**. Knowing how a run consumes that budget tells you whether to use `--max-prs`, `--max-commits`, or `--no-extension-breakdown`.
 
@@ -278,7 +282,7 @@ total ≈ fixed_overhead
 | **PR hydration** | **6 calls per PR** (default) — `/pulls/{n}`, `/pulls/{n}/commits`, `/pulls/{n}/files`, `/pulls/{n}/reviews`, `/issues/{n}/comments`, `/pulls/{n}/comments`. Drops to **5** with `--no-extension-breakdown`. PRs with many files / comments / reviews / commits paginate further. | `--max-prs N` caps **each** of `P_authored` and `P_participated` at `N`. `--no-extension-breakdown` shaves 1 call per PR. |
 | **Commit fetch** | `R + ⌈C/100⌉` — one paginated request per repo, plus extra pages if the repo has many commits by the user. | `--max-commits N` stops once `N` commits are collected, but the loop still touches repos until then. |
 
-### Worked examples
+#### Worked examples
 
 Assuming `R = 20` repos, `5,000 req/hr` budget:
 
@@ -296,6 +300,20 @@ Assuming `R = 20` repos, `5,000 req/hr` budget:
 **On a rate-limit 403:** the client locks itself on the first rate-limit `403` (identified by a `Retry-After` header or `X-RateLimit-Remaining: 0`), aborts the scrape, and **writes a partial report from whatever data was already collected** — exit code `2` (vs. `0` for full success). Each provider attaches its in-progress accumulator to the raised exception so nothing collected is wasted. There's no automatic backoff; re-run after the rate-limit window resets (typically up to one hour).
 
 **On a per-repo access 403:** a `403` that is *not* a rate limit — e.g. an org repo behind SAML/SSO the PAT isn't authorized for — is treated as a per-repo condition, not a rate limit. That single repo is skipped (like a `404`/`409`) and the commit walk continues; the run still completes with exit `0`. Authorize the PAT for the org (classic PAT: "Configure SSO"; fine-grained PAT: org grants access) to include those repos.
+
+### Wire-shape objects
+
+Every GitHub route GetGit hits lives behind a typed `GithubClient` method that returns a **wire-shape object** — one class per GitHub resource (in GitHub's shape, distinct from GetGit's internal domain models), holding only the fields GetGit consumes. List endpoints return `list[…]` of these; `get_pull_request` returns a single one.
+
+| Wire-shape object | Endpoint |
+| --- | --- |
+| `GithubRepo` | `/user/repos`, `/users/{username}/repos` |
+| `GithubIssue` | `/search/issues` |
+| `GithubCommit` | `/repos/{repo}/commits` |
+| `GithubPullRequest` | `/repos/{repo}/pulls/{number}` |
+| `GithubPullRequestChangedFile` | `/repos/{repo}/pulls/{number}/files` |
+| `GithubReview` | `/repos/{repo}/pulls/{number}/reviews` |
+| `GithubComment` | `/repos/{repo}/issues/{number}/comments`, `/repos/{repo}/pulls/{number}/comments` |
 
 ## Tests
 

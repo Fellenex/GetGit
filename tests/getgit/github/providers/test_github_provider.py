@@ -7,18 +7,18 @@ import httpx
 import pytest
 
 from getgit.github import (
-    Comment,
-    CommitPayload,
     GithubClient,
+    GithubComment,
+    GithubCommit,
+    GithubIssue,
     GithubProvider,
-    IssueSearchResult,
-    PullRequestDetail,
+    GithubPullRequest,
+    GithubPullRequestChangedFile,
+    GithubRepo,
+    GithubReview,
     PullRequestFetchResult,
-    PullRequestFile,
-    PullRequestReview,
     RateLimitExceededError,
     RepositoryAccessError,
-    RepoSummary,
 )
 
 _DT = datetime(2026, 5, 12, 10, 0, tzinfo=timezone.utc)
@@ -31,8 +31,8 @@ def _http_status_error(status: int) -> httpx.HTTPStatusError:
     return httpx.HTTPStatusError(f"{status}", request=request, response=response)
 
 
-def _detail(**overrides) -> PullRequestDetail:
-    """Build a PullRequestDetail with sensible defaults for hydration tests."""
+def _detail(**overrides) -> GithubPullRequest:
+    """Build a GithubPullRequest with sensible defaults for hydration tests."""
     base = dict(
         title="t",
         body=None,
@@ -46,12 +46,12 @@ def _detail(**overrides) -> PullRequestDetail:
         review_comments=0,
     )
     base.update(overrides)
-    return PullRequestDetail(**base)
+    return GithubPullRequest(**base)
 
 
-def _payload(sha: str) -> CommitPayload:
-    """Build a CommitPayload for commit-walk tests."""
-    return CommitPayload(sha=sha, authored_at=_DT, message=f"msg {sha}")
+def _payload(sha: str) -> GithubCommit:
+    """Build a GithubCommit for commit-walk tests."""
+    return GithubCommit(sha=sha, authored_at=_DT, message=f"msg {sha}")
 
 
 # --- list_repos ---------------------------------------------------------------
@@ -60,18 +60,18 @@ def _payload(sha: str) -> CommitPayload:
 def test_list_repos_self_uses_list_own_repos():
     """is_self=True delegates to the client's own-repos endpoint."""
     client = Mock(spec=GithubClient)
-    client.list_own_repos.return_value = [RepoSummary("me/r"), RepoSummary("org/x")]
+    client.list_own_repos.return_value = [GithubRepo("me/r"), GithubRepo("org/x")]
 
     out = GithubProvider(client).list_repos("me", is_self=True)
 
-    assert out == [RepoSummary("me/r"), RepoSummary("org/x")]
+    assert out == [GithubRepo("me/r"), GithubRepo("org/x")]
     client.list_own_repos.assert_called_once_with()
 
 
 def test_list_repos_stranger_uses_list_user_repos():
     """is_self=False delegates to the client's user-repos endpoint with the username."""
     client = Mock(spec=GithubClient)
-    client.list_user_repos.return_value = [RepoSummary("alice/r")]
+    client.list_user_repos.return_value = [GithubRepo("alice/r")]
 
     GithubProvider(client).list_repos("alice", is_self=False)
 
@@ -96,7 +96,7 @@ def test_fetch_pull_requests_hydrates_authored_pr_end_to_end():
     """One authored PR: merged flag, comment sum, self-comment count, jira, reviews, index."""
     client = Mock(spec=GithubClient)
     client.search_issues.side_effect = (
-        lambda q: [IssueSearchResult("o/r", 1)] if "author:alice" in q else []
+        lambda q: [GithubIssue("o/r", 1)] if "author:alice" in q else []
     )
     client.get_pull_request.return_value = _detail(
         title="WD-1 add thing",
@@ -107,11 +107,11 @@ def test_fetch_pull_requests_hydrates_authored_pr_end_to_end():
         comments=3,
         review_comments=4,
     )
-    client.list_issue_comments.return_value = [Comment("alice"), Comment("bob")]
-    client.list_review_comments.return_value = [Comment("alice")]
+    client.list_issue_comments.return_value = [GithubComment("alice"), GithubComment("bob")]
+    client.list_review_comments.return_value = [GithubComment("alice")]
     client.list_pull_request_reviews.return_value = [
-        PullRequestReview("alice", "APPROVED", _DT, "lgtm"),
-        PullRequestReview("bob", "COMMENTED", _DT, "hmm"),
+        GithubReview("alice", "APPROVED", _DT, "lgtm"),
+        GithubReview("bob", "COMMENTED", _DT, "hmm"),
     ]
     client.list_pull_request_commits.return_value = ["sha1", "sha2"]
 
@@ -136,7 +136,7 @@ def test_fetch_pull_requests_hydrates_authored_pr_end_to_end():
 def test_fetch_pull_requests_excludes_authored_from_participated():
     """A PR that is both authored and a participation hit stays only in authored."""
     client = Mock(spec=GithubClient)
-    client.search_issues.side_effect = lambda q: [IssueSearchResult("o/r", 1)]
+    client.search_issues.side_effect = lambda q: [GithubIssue("o/r", 1)]
     client.get_pull_request.return_value = _detail()
     client.list_issue_comments.return_value = []
     client.list_review_comments.return_value = []
@@ -153,7 +153,7 @@ def test_fetch_pull_requests_open_pr_is_not_merged():
     """A PR with no merged_at hydrates as merged=False."""
     client = Mock(spec=GithubClient)
     client.search_issues.side_effect = (
-        lambda q: [IssueSearchResult("o/r", 2)] if "author:alice" in q else []
+        lambda q: [GithubIssue("o/r", 2)] if "author:alice" in q else []
     )
     client.get_pull_request.return_value = _detail(merged_at=None)
     client.list_issue_comments.return_value = []
@@ -222,7 +222,7 @@ def test_fetch_commits_walks_each_repo_and_returns_commits():
         "o/r1": [_payload("a")],
         "o/r2": [_payload("b"), _payload("c")],
     }[full_name]
-    repos = [RepoSummary("o/r1"), RepoSummary("o/r2")]
+    repos = [GithubRepo("o/r1"), GithubRepo("o/r2")]
 
     out = GithubProvider(client).fetch_commits(repos, "alice")
 
@@ -237,7 +237,7 @@ def test_fetch_commits_attaches_pull_request_number_from_index():
     client.list_repo_commits.return_value = [_payload("a"), _payload("b")]
 
     out = GithubProvider(client).fetch_commits(
-        [RepoSummary("o/r")], "alice", pr_index={("o/r", "a"): 42}
+        [GithubRepo("o/r")], "alice", pr_index={("o/r", "a"): 42}
     )
 
     assert out[0].pull_request_number == 42
@@ -249,7 +249,7 @@ def test_fetch_commits_respects_limit():
     client = Mock(spec=GithubClient)
     client.list_repo_commits.return_value = [_payload(s) for s in "abcde"]
 
-    out = GithubProvider(client).fetch_commits([RepoSummary("o/r")], "alice", limit=2)
+    out = GithubProvider(client).fetch_commits([GithubRepo("o/r")], "alice", limit=2)
 
     assert [c.sha for c in out] == ["a", "b"]
 
@@ -261,7 +261,7 @@ def test_fetch_commits_passes_since_watermark_per_repo():
     watermark = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     GithubProvider(client).fetch_commits(
-        [RepoSummary("o/r")], "alice", since_per_repo={"o/r": watermark}
+        [GithubRepo("o/r")], "alice", since_per_repo={"o/r": watermark}
     )
 
     client.list_repo_commits.assert_called_once_with(
@@ -274,7 +274,7 @@ def test_fetch_commits_skips_repos_that_return_409_or_404():
     client = Mock(spec=GithubClient)
     client.list_repo_commits.side_effect = _http_status_error(409)
 
-    assert GithubProvider(client).fetch_commits([RepoSummary("o/empty")], "alice") == []
+    assert GithubProvider(client).fetch_commits([GithubRepo("o/empty")], "alice") == []
 
 
 def test_fetch_commits_skips_repo_that_returns_403_and_continues():
@@ -288,7 +288,7 @@ def test_fetch_commits_skips_repo_that_returns_403_and_continues():
     client.list_repo_commits.side_effect = per_repo
 
     out = GithubProvider(client).fetch_commits(
-        [RepoSummary("org/locked"), RepoSummary("org/ok")], "alice"
+        [GithubRepo("org/locked"), GithubRepo("org/ok")], "alice"
     )
 
     assert [c.sha for c in out] == ["a"]
@@ -307,7 +307,7 @@ def test_fetch_commits_rate_limit_attaches_partial():
 
     with pytest.raises(RateLimitExceededError) as excinfo:
         GithubProvider(client).fetch_commits(
-            [RepoSummary("o/r1"), RepoSummary("o/r2")], "alice"
+            [GithubRepo("o/r1"), GithubRepo("o/r2")], "alice"
         )
 
     assert [c.sha for c in excinfo.value.partial] == ["a", "b"]
@@ -320,9 +320,9 @@ def test_ext_breakdown_omits_zero_entries():
     """A `.unity` file with deletions but no additions appears only in `deletions`."""
     client = Mock(spec=GithubClient)
     client.list_pull_request_files.return_value = [
-        PullRequestFile("Assets/foo.unity", 0, 3),
-        PullRequestFile("src/foo.py", 10, 0),
-        PullRequestFile("src/bar.py", 5, 2),
+        GithubPullRequestChangedFile("Assets/foo.unity", 0, 3),
+        GithubPullRequestChangedFile("src/foo.py", 10, 0),
+        GithubPullRequestChangedFile("src/bar.py", 5, 2),
     ]
 
     additions, deletions = GithubProvider(client)._ext_breakdown("o/r", 1)
@@ -334,7 +334,7 @@ def test_ext_breakdown_omits_zero_entries():
 def test_ext_breakdown_no_changes_yields_empty_dicts():
     """A PR with only zero-line file entries returns two empty dicts (not `{ext: 0}`)."""
     client = Mock(spec=GithubClient)
-    client.list_pull_request_files.return_value = [PullRequestFile("noop.txt", 0, 0)]
+    client.list_pull_request_files.return_value = [GithubPullRequestChangedFile("noop.txt", 0, 0)]
 
     additions, deletions = GithubProvider(client)._ext_breakdown("o/r", 1)
 

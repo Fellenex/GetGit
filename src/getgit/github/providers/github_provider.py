@@ -1,4 +1,4 @@
-"""GitHub provider: turns client response objects into internal domain objects."""
+"""GitHub provider: turns client wire-shape objects into internal domain objects."""
 
 import re
 from datetime import datetime
@@ -8,20 +8,20 @@ import httpx
 
 from ..clients import GithubClient, RateLimitExceededError, RepositoryAccessError
 from ..data import (
-    Comment,
     Commit,
-    CommitPayload,
+    GithubComment,
+    GithubCommit,
+    GithubRepo,
     PullRequest,
     PullRequestFetchResult,
-    RepoSummary,
     Review,
 )
 
 
 class GithubProvider:
-    """Unravels GitHub wire-shape response objects into internal domain objects.
+    """Unravels GitHub wire-shape objects into internal domain objects.
 
-    Consumes the typed response objects from `GithubClient` and emits the
+    Consumes the typed wire-shape objects from `GithubClient` and emits the
     domain `Commit`, `PullRequest`, and `Review` objects. Holds every
     raw→domain business rule that used to be spread across the three
     per-resource providers — JIRA-code extraction, the extension
@@ -45,7 +45,7 @@ class GithubProvider:
         """Bind to a `GithubClient` for all subsequent calls."""
         self._client = client
 
-    def list_repos(self, username: str, is_self: bool) -> list[RepoSummary]:
+    def list_repos(self, username: str, is_self: bool) -> list[GithubRepo]:
         """List repos `username` has access to; self-vs-stranger is the only branch.
 
         `is_self=True` covers owned + collaborator + org-member repos
@@ -54,7 +54,7 @@ class GithubProvider:
         route each uses. On rate limit, attaches the partial list already
         collected to the raised `RateLimitExceededError`.
         """
-        repos: list[RepoSummary] = []
+        repos: list[GithubRepo] = []
         try:
             repos.extend(
                 self._client.list_own_repos()
@@ -139,7 +139,7 @@ class GithubProvider:
 
     def fetch_commits(
         self,
-        repos: list[RepoSummary],
+        repos: list[GithubRepo],
         username: str,
         limit: int | None = None,
         pr_index: dict[tuple[str, str], int] | None = None,
@@ -270,7 +270,7 @@ class GithubProvider:
         return additions, deletions
 
     @staticmethod
-    def _count_user_comments(comments: list[Comment], username: str) -> int:
+    def _count_user_comments(comments: list[GithubComment], username: str) -> int:
         """Count comments authored by `username` in a comment stream."""
         return sum(1 for c in comments if c.author_login == username)
 
@@ -305,9 +305,9 @@ class GithubProvider:
 
     @staticmethod
     def _build_commit(
-        payload: CommitPayload, full_name: str, pr_index: dict[tuple[str, str], int]
+        payload: GithubCommit, full_name: str, pr_index: dict[tuple[str, str], int]
     ) -> Commit:
-        """Materialize a `Commit` from a `CommitPayload`, linking its PR number if indexed."""
+        """Materialize a `Commit` from a `GithubCommit`, linking its PR number if indexed."""
         return Commit(
             sha=payload.sha,
             repo=full_name,
